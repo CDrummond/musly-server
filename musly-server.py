@@ -17,6 +17,7 @@ DB_FILE = 'musly.db'
 JUKEBOX_FILE = 'musly.jukebox'
 AUDIO_EXTENSIONS = ['m4a', 'mp3', 'ogg', 'flac']
 CUE_TRACK = '.CUE_TRACK.'
+VARIOUS_ARTISTS = ['Various', 'Various Artists']
 _LOGGER = logging.getLogger(__name__)
 app = Flask(__name__)
 mus = None
@@ -223,7 +224,7 @@ def same_artist_or_album(seeds, artist, album, albumartist):
     for seed in seeds:
         if seed['artist']==artist:
             return True
-        if seed['album']==album and seed['albumartist']==albumartist:
+        if seed['album']==album and seed['albumartist']==albumartist and albumartist not in VARIOUS_ARTISTS:
             return True
     return False
 
