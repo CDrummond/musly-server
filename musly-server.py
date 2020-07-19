@@ -48,11 +48,31 @@ def get_metadata(scursor, i):
     try:
         scursor.execute('SELECT artist, album, albumartist FROM tracks WHERE id=?', (i,))
         row = scursor.fetchone()
-        return row[0], row[1], row[2]
+        return {'artist':row[0], 'album':row[1], 'albumartist':row[2]}
     except Exception as e:
         _LOGGER.error('Failed to read metadata - %s' % str(e))
         pass
-    return None, None, None
+    return None
+
+
+def get_ogg_or_flac(path):
+    try:
+        return OggVorbis(path)
+    except:
+        pass
+    try:
+        return FLAC(path)
+    except:
+        pass
+    try:
+        return OggFLAC(path)
+    except:
+        pass
+    try:
+        return OggOpus(path)
+    except:
+        pass
+    return None
 
 
 def read_tags(path):
@@ -65,51 +85,39 @@ def read_tags(path):
 
     try:
         audio = ID3(path)
-        return audio['TPE1'], audio['TALB'], audio['TPE2'] if 'TPE2' in audio else None
+        meta = {'artist':audio['TPE1'], 'album':audio['TALB']}
+        if 'TPE2' in audio:
+            meta['albumartist']=audio['TPE2']
+        return meta
     except:
         pass
 
     try:
         audio = MP4(path)
-        return audio['\xa9ART'][0], audio['\xa9alb'][0], audio['aART'][0] if 'aART' in audio else None
+        meta = {'artist':audio['\xa9ART'][0], 'album':audio['\xa9alb'][0]}
+        if 'aART' in audio:
+            meta['albumartist']=audio['aART'][0]
+        return meta
     except:
         pass
 
-    try:
-        audio = OggVorbis(path)
-        return audio['ARTIST'][0], audio['ALBUM'][0], audio['ALBUMARTIST'][0] if 'ALBUMARTIST' in audio else None
-    except:
-        pass
+    audio = get_ogg_or_flac(path)
+    if audio:
+        meta = {'artist':audio['ARTIST'][0], 'album':audio['ALBUM']}[0]
+        if 'ALBUMARTIST' in audio:
+            meta['albumartist']=audio['ALBUMARTIST'][0]
+        return meta
 
-    try:
-        audio = FLAC(path)
-        return audio['ARTIST'][0], audio['ALBUM'][0], audio['ALBUMARTIST'][0] if 'ALBUMARTIST' in audio else None
-    except:
-        pass
-        
-    try:
-        audio = OggFLAC(path)
-        return audio['ARTIST'][0], audio['ALBUM'][0], audio['ALBUMARTIST'][0] if 'ALBUMARTIST' in audio else None
-    except:
-        pass
-
-    try:
-        audio = OggOpus(path)
-        return audio['ARTIST'][0], audio['ALBUM'][0], audio['ALBUMARTIST'][0] if 'ALBUMARTIST' in audio else None
-    except:
-        pass
-
-    _LOGGER.error("Failed to read tags from '%s'" % path)
     return None, None, None
 
 
 def set_metadata(scursor, track):
-    (artist, album, albumartist) = read_tags(track['abs'])
-    if artist is not None and album is not None:
-        if albumartist is None:
-            scursor.execute('UPDATE tracks SET artist=?, album=? WHERE file=?', (str(artist), str(album), track['db']))
+    tags = read_tags(track['abs'])
+    if tags is not None:
+        if tags['albumartist'] is None:
+            scursor.execute('UPDATE tracks SET artist=?, album=? WHERE file=?', (str(tags['artist']), str(tags['album']), track['db']))
         else:
-            scursor.execute('UPDATE tracks SET artist=?, album=?, albumartist=? WHERE file=?', (str(artist), str(album), str(albumartist), track['db']))
+            scursor.execute('UPDATE tracks SET artist=?, album=?, albumartist=? WHERE file=?', (str(tags['artist']), str(tags['album']), str(tags['albumartist']), track['db']))
 
 
 def file_already_analysed(scursor, path):
@@ -220,11 +228,11 @@ def analyse_files(path):
     _LOGGER.debug('Finished analysis')
 
 
-def same_artist_or_album(seeds, artist, album, albumartist):
+def same_artist_or_album(seeds, track):
     for seed in seeds:
-        if seed['artist']==artist:
+        if seed['artist']==track['artist']:
             return True
-        if seed['album']==album and seed['albumartist']==albumartist and albumartist not in VARIOUS_ARTISTS:
+        if seed['album']==track['album'] and seed['albumartist']==track['albumartist'] and track['albumartist'] not in VARIOUS_ARTISTS:
             return True
     return False
 
@@ -280,10 +288,10 @@ def similar_api():
             pass
         if track_id is not None and track_id>=0:
             track_ids.append(track_id)
-            (artist, album, albumartist) = get_metadata(scursor, track_id+1) # IDs in SQLite are 1.. musly is 0..
-            _LOGGER.debug('Seed %d metadata %s -- %s -- %s' % (track_id, artist, album, albumartist))
-            if artist is not None and album is not None:
-                seed_metadata.append({'artist':artist, 'album':album, 'albumartist':albumartist})
+            meta = get_metadata(scursor, track_id+1) # IDs in SQLite are 1.. musly is 0..
+            _LOGGER.debug('Seed %d metadata %s -- %s -- %s' % (track_id, meta['artist'], meta['album'], meta['albumartist']))
+            if meta is not None:
+                seed_metadata.append(meta)
 
     for track_id in track_ids:
         # Query musly for similar tracks
@@ -293,19 +301,19 @@ def similar_api():
             if not resp_ids[i] in similar_track_ids and resp_similarity[i]>0.0:
                 similar_track_ids.append(resp_ids[i])
 
-                (artist, album, albumartist) = get_metadata(scursor, resp_ids[i]+1) # IDs in SQLite are 1.. musly is 0..
-                if same_artist_or_album(seed_metadata, artist, album, albumartist):
-                    _LOGGER.debug('FILTERED(seeds) ID:%d Path:%s Similarity:%f Artist:%s Album:%s AlbumArtist:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], artist, album, albumartist))
+                meta = get_metadata(scursor, resp_ids[i]+1) # IDs in SQLite are 1.. musly is 0..
+                if same_artist_or_album(seed_metadata, meta):
+                    _LOGGER.debug('FILTERED(seeds) ID:%d Path:%s Similarity:%f Artist:%s Album:%s AlbumArtist:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], meta['artist'], meta['album'], meta['albumartist']))
                     filtered_by_seeds_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
-                elif same_artist_or_album(current_metadata, artist, album, albumartist):
-                    _LOGGER.debug('FILTERED(current) ID:%d Path:%s Similarity:%f Artist:%s Album:%s AlbumArtist:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], artist, album, albumartist))
+                elif same_artist_or_album(current_metadata, meta):
+                    _LOGGER.debug('FILTERED(current) ID:%d Path:%s Similarity:%f Artist:%s Album:%s AlbumArtist:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], meta['artist'], meta['album'], meta['albumartist']))
                     filtered_by_current_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
                 else:
                     key = "%s::%s::%s" % (artist, album, albumartist)
                     if not key in current_metadata_keys:
                         current_metadata_keys[key]=1
                         current_metadata.append({'artist':artist, 'album':album, 'albumartist':albumartist})
-                    _LOGGER.debug('USABLE ID:%d Path:%s Similarity:%f Artist:%s Album:%s AlbumArtist:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], artist, album, albumartist))
+                    _LOGGER.debug('USABLE ID:%d Path:%s Similarity:%f Artist:%s Album:%s AlbumArtist:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], meta['artist'], meta['album'], meta['albumartist']))
                     similar_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
                     accepted_tracks += 1
                     if accepted_tracks>=count:
