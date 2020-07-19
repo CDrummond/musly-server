@@ -1,0 +1,10 @@
+[Unit]
+Description=Musly API Server
+
+[Service]
+Type=simple
+User=lms
+ExecStart=/usr/bin/python3 /usr/local/musly/musly-server.py -c /usr/local/musly/pi.json
+
+[Install]
+WantedBy=multi-user.target

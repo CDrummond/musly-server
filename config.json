@@ -1,0 +1,10 @@
+{
+ "libmusly":"lib/x86-64/fedora32/libmusly.so",
+ "paths":{
+  "db":"/home/user/.local/share/musly/",
+  "musly":"/home/Music/",
+  "lms":"/media/Music/",
+  "tmp":"/tmp/"
+ },
+ "lmsdb":"/path/to/lms/Cache/library.db"
+}
