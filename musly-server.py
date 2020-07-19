@@ -221,7 +221,6 @@ def analyse_files(path):
 
 def same_artist_or_album(seeds, artist, album, albumartist):
     for seed in seeds:
-        _LOGGER.debug('Check %s = %s, %s = %s, %s = %s' % (seed['artist'], artist, seed['album'], album, seed['albumartist'], albumartist))
         if seed['artist']==artist:
             return True
         if seed['album']==album and seed['albumartist']==albumartist:
@@ -288,6 +287,7 @@ def similar_api():
     for track_id in track_ids:
         # Query musly for similar tracks
         ( resp_ids, resp_similarity ) = mus.get_similars( mta.mtracks, mta.mtrackids, track_id, (count*5)+1 )
+        accepted_tracks = 0
         for i in range(1, len(resp_ids)):
             if not resp_ids[i] in similar_track_ids and resp_similarity[i]>0.0:
                 similar_track_ids.append(resp_ids[i])
@@ -306,6 +306,9 @@ def similar_api():
                         current_metadata.append({'artist':artist, 'album':album, 'albumartist':albumartist})
                     _LOGGER.debug('USABLE ID:%d Path:%s Similarity:%f Artist:%s Album:%s AlbumArtist:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], artist, album, albumartist))
                     similar_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
+                    accepted_tracks += 1
+                    if accepted_tracks>=count:
+                        break
 
     # Too few tracks? Add some from the filtered list
     if len(similar_tracks)<count and len(filtered_by_current_tracks)>0:
