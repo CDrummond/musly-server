@@ -41,7 +41,7 @@ number differs, the jukebox is recreated (which can take ~20mins)
 Only 1 API is currently supported:
 
 ```
-http://HOST:11000/api/similar?track=/path/of/track&track=/path/of/another/track&count=10&filtergenre=1&min=30&max=600
+http://HOST:11000/api/similar?track=/path/of/track&track=/path/of/another/track&count=10&filtergenre=1&min=30&max=600&ignore=/path/to/ignore
 ```
 ...this will get 10 similar tracks to those supplied.
 
@@ -53,6 +53,9 @@ considered.
 
 `min` and `max` can be used to set the minimum, and maximum, duration (in
 seconds) of tracks to be considered.
+
+`ignore` may be used to list tracks to ignore (e.g. tracks that are already in
+the queue). This parameter, like `track`, may be repeated multiple times.
 
 The API will try query Musly for 20 times the specified `count` tracks
 (default of 5) for each supplied seed track. (This is to allow for filtering

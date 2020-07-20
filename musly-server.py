@@ -369,7 +369,7 @@ def similar_api():
 
     (sconn, scursor) = init_db(os.path.join(config['paths']['db'], DB_FILE))
 
-    # Musly IDs of seed traks
+    # Musly IDs of seed tracks
     track_ids = []
     for track in tracks:
         if track.startswith(root):
@@ -396,22 +396,38 @@ def similar_api():
                                 for cg in group:
                                     if not cg in seed_genres:
                                         seed_genres.append(cg)
+
+    ignore_track_ids = []
+    if 'ignore' in params:
+        for track in params['ignore']:
+            if track.startswith(root):
+                track=track[len(root):]
+            # Check that musly knows about this track
+            track_id = -1
+            try:
+                track_id = mta.paths.index( track )
+                if track_id is not None and track_id>=0:
+                    ignore_track_ids.append(track_id)
+            except:
+                pass
+        _LOGGER.debug('Have %d tracks to ignore' % len(ignore_track_ids))
+
     if match_genre:
         _LOGGER.debug('Seed genres: %s' % seed_genres)
 
     for track_id in track_ids:
         # Query musly for similar tracks
-        ( resp_ids, resp_similarity ) = mus.get_similars( mta.mtracks, mta.mtrackids, track_id, (count*20)+1 )
+        ( resp_ids, resp_similarity ) = mus.get_similars( mta.mtracks, mta.mtrackids, track_id, (count*25)+1 )
         accepted_tracks = 0
         for i in range(1, len(resp_ids)):
-            if not resp_ids[i] in similar_track_ids and resp_similarity[i]>0.0:
+            if not resp_ids[i] in track_ids and not resp_ids[i] in ignore_track_ids and not resp_ids[i] in similar_track_ids and resp_similarity[i]>0.0:
                 similar_track_ids.append(resp_ids[i])
 
                 meta = get_metadata(scursor, resp_ids[i]+1) # IDs in SQLite are 1.. musly is 0..
                 if (min_duration>0 or max_duration>0) and not check_duration(min_duration, max_duration, meta):
-                    _LOGGER.debug('IGNORE(duration) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
+                    _LOGGER.debug('DISCARD(duration) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                 elif match_genre and not genre_matches(seed_genres, meta):
-                    _LOGGER.debug('IGNORE(genre) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
+                    _LOGGER.debug('DISCARD(genre) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                 else:
                     if same_artist_or_album(seed_metadata, meta):
                         _LOGGER.debug('FILTERED(seeds) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
