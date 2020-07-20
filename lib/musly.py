@@ -204,7 +204,7 @@ class Musly(object):
                 try:
                     result = future.result()
                     if result['ok']:
-                        scursor.execute('INSERT INTO tracks VALUES (NULL,?,NULL,NULL,NULL,?)', (allfiles[result['index']]['db'], pickle.dumps(bytes(result['mtrack']), protocol=4)))
+                        scursor.execute('INSERT INTO tracks (file, vals) VALUES (?, ?)', (allfiles[result['index']]['db'], pickle.dumps(bytes(result['mtrack']), protocol=4)))
                     analyzed_tracks[result['index']]=ctypes.pointer(result['mtrack'])
                 except Exception as e:
                     _LOGGER.debug("Thread exception? - %s" % str(e))

@@ -41,17 +41,39 @@ number differs, the jukebox is recreated (which can take ~20mins)
 Only 1 API is currently supported:
 
 ```
-http://HOST:11000/api/similar?track=/path/of/track&track=/path/of/another/track&count=10
+http://HOST:11000/api/similar?track=/path/of/track&track=/path/of/another/track&count=10&filtergenre=1
 ```
-...this will get 10 similar tracks to those supplied. The API will try query
-Musly for 5 times the specified `count` tracks (default of 5) for each supplied
-seed track. Initally the API will ignore musly tracks from the same artist or
-album of the seed tracks (and any previous in the list). If, because of this
+...this will get 10 similar tracks to those supplied. If `filtergenre=1` is
+supplied then only tracks whose genre matches a pre-configured set of genres
+(mapped from seed tracks) will be used. e.g. if `["Heavy Metal", "Metal",
+"Power Metal"]` is defined in the config, and a seed tack's genre has `Metal`
+the only tracks with one of these 3 genres will be considered.
+
+The API will try query Musly for 20 times the specified `count` tracks
+(default of 5) for each supplied seed track. (This is to allow for filtering
+on genre, etc). Initally the API will ignore musly tracks from the same artist
+or album of the seed tracks (and any previous in the list). If, because of this
 filtering, there are less than the requested amount then the highest similarty
 tracks from the filtered-out list are chosen. Finally all tracks are sorted by
 similarity, with the most similar first.
 
 This API is intended to be used by [LMS Musly DSTM Mixer](https://github.com/CDrummond/lms-muslymixer)
+
+Genres are configured via the `genres` section of `config.json`, using the
+following syntax:
+
+```
+{
+ "genres:[
+  [ "Rock", "Hard Rock", "Metal" ],
+  [ "Pop", "Dance", "R&B"]
+ ]
+}
+```
+
+If a seed track has `Hard Rock` as its genre, then only tracks with `Rock`,
+`Hard Rock`, or `Metal` will be allowed. If a seed track has a genre that is not
+listed here then any track returned by Musly will be considered acceptable.
 
 ## Credits
 
