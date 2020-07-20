@@ -41,13 +41,18 @@ number differs, the jukebox is recreated (which can take ~20mins)
 Only 1 API is currently supported:
 
 ```
-http://HOST:11000/api/similar?track=/path/of/track&track=/path/of/another/track&count=10&filtergenre=1
+http://HOST:11000/api/similar?track=/path/of/track&track=/path/of/another/track&count=10&filtergenre=1&min=30&max=600
 ```
-...this will get 10 similar tracks to those supplied. If `filtergenre=1` is
-supplied then only tracks whose genre matches a pre-configured set of genres
-(mapped from seed tracks) will be used. e.g. if `["Heavy Metal", "Metal",
-"Power Metal"]` is defined in the config, and a seed tack's genre has `Metal`
-the only tracks with one of these 3 genres will be considered.
+...this will get 10 similar tracks to those supplied.
+
+If `filtergenre=1` is supplied then only tracks whose genre matches a
+pre-configured set of genres (mapped from seed tracks) will be used. e.g. if
+`["Heavy Metal", "Metal", "Power Metal"]` is defined in the config, and a seed
+tack's genre has `Metal` then only tracks with one of these 3 genres will be
+considered.
+
+`min` and `max` can be used to set the minimum, and maximum, duration (in
+seconds) of tracks to be considered.
 
 The API will try query Musly for 20 times the specified `count` tracks
 (default of 5) for each supplied seed track. (This is to allow for filtering

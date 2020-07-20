@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 
+#
+# Analyse files with Musly, and provide an API to retrieve simialr tracks
+#
+# Copyright (c) 2020 Craig Drummond <craig.p.drummond@gmail.com>
+# GPLv3 license.
+#
+
+
 import argparse
 import json
 import logging
@@ -36,6 +44,7 @@ def init_db(path):
                 album varchar,
                 albumartist varchar,
                 genre varchar,
+                duration integer,
                 vals blob NOT NULL)''')
     scursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS tracks_idx ON tracks(file)')
     return sconn, scursor
@@ -48,9 +57,9 @@ def close_db(sconn, scursor):
 
 def get_metadata(scursor, i):
     try:
-        scursor.execute('SELECT artist, album, albumartist, genre FROM tracks WHERE id=?', (i,))
+        scursor.execute('SELECT artist, album, albumartist, genre, duration FROM tracks WHERE id=?', (i,))
         row = scursor.fetchone()
-        meta = {'artist':row[0], 'album':row[1], 'albumartist':row[2]}
+        meta = {'artist':row[0], 'album':row[1], 'albumartist':row[2], 'duration':row[4]}
         if row[3] and len(row[3])>0:
             meta['genres']=row[3].split(GENRE_SEPARATOR)
         return meta
@@ -85,13 +94,14 @@ def get_ogg_or_flac(path):
     return None
 
 
-def read_tags(path):
+def read_metadata(path):
     from mutagen.id3 import ID3
+    from mutagen.mp3 import MP3
     from mutagen.mp4 import MP4
 
     try:
         audio = MP4(path)
-        meta = {'artist':str(audio['\xa9ART'][0]), 'album':str(audio['\xa9alb'][0])}
+        meta = {'artist':str(audio['\xa9ART'][0]), 'album':str(audio['\xa9alb'][0]), 'duration':int(audio.info.length)}
         if 'aART' in audio:
             meta['albumartist']=str(audio['aART'][0])
         if '\xa9gen' in audio:
@@ -104,20 +114,33 @@ def read_tags(path):
         pass
 
     try:
-        audio = ID3(path)
-        meta = {'artist':str(audio['TPE1']), 'album':str(audio['TALB'])}
+        audio = MP3(path)
+        meta = {'artist':str(audio['TPE1']), 'album':str(audio['TALB']), 'duration':int(audio.info.length)}
         if 'TPE2' in audio:
             meta['albumartist']=str(audio['TPE2'])
         if 'TCON' in audio:
             meta['genres']=str(audio['TCON']).split(GENRE_SEPARATOR)
         _LOGGER.debug('MP3 File:%s Meta:%s' % (path, json.dumps(meta)))
         return meta
+    except Exception as e:
+        print("EX:%s" % str(e))
+        pass
+
+    try:
+        audio = ID3(path)
+        meta = {'artist':str(audio['TPE1']), 'album':str(audio['TALB']), 'duration':0}
+        if 'TPE2' in audio:
+            meta['albumartist']=str(audio['TPE2'])
+        if 'TCON' in audio:
+            meta['genres']=str(audio['TCON']).split(GENRE_SEPARATOR)
+        _LOGGER.debug('ID3 File:%s Meta:%s' % (path, json.dumps(meta)))
+        return meta
     except:
         pass
 
     audio = get_ogg_or_flac(path)
     if audio:
-        meta = {'artist':str(audio['ARTIST'][0]), 'album':str(audio['ALBUM'][0])}
+        meta = {'artist':str(audio['ARTIST'][0]), 'album':str(audio['ALBUM'][0]), 'duration':int(audio.info.length)}
         if 'ALBUMARTIST' in audio:
             meta['albumartist']=str(audio['ALBUMARTIST'][0])
         if 'GENRE' in audio:
@@ -132,18 +155,18 @@ def read_tags(path):
 
 
 def set_metadata(scursor, track):
-    tags = read_tags(track['abs'])
-    if tags is not None:
-        if not 'albumartist' in tags or tags['albumartist'] is None:
-            if not 'genres' in tags or tags['genres'] is None:
-                scursor.execute('UPDATE tracks SET artist=?, album=? WHERE file=?', (tags['artist'], tags['album'], track['db']))
+    meta = read_metadata(track['abs'])
+    if meta is not None:
+        if not 'albumartist' in meta or meta['albumartist'] is None:
+            if not 'genres' in meta or meta['genres'] is None:
+                scursor.execute('UPDATE tracks SET artist=?, album=?, duration=? WHERE file=?', (meta['artist'], meta['album'], meta['duration'], track['db']))
             else:
-                scursor.execute('UPDATE tracks SET artist=?, album=?, genre=? WHERE file=?', (tags['artist'], tags['album'], GENRE_SEPARATOR.join(tags['genres']), track['db']))
+                scursor.execute('UPDATE tracks SET artist=?, album=?, genre=?, duration=? WHERE file=?', (meta['artist'], meta['album'], GENRE_SEPARATOR.join(meta['genres']), meta['duration'], track['db']))
         else:
-            if not 'genres' in tags or tags['genres'] is None:
-                scursor.execute('UPDATE tracks SET artist=?, album=?, albumartist=? WHERE file=?', (tags['artist'], tags['album'], tags['albumartist'], track['db']))
+            if not 'genres' in meta or meta['genres'] is None:
+                scursor.execute('UPDATE tracks SET artist=?, album=?, albumartist=?, duration=? WHERE file=?', (meta['artist'], meta['album'], meta['albumartist'], meta['duration'], track['db']))
             else:
-                scursor.execute('UPDATE tracks SET artist=?, album=?, albumartist=?, genre=? WHERE file=?', (tags['artist'], tags['album'], tags['albumartist'], GENRE_SEPARATOR.join(tags['genres']), track['db']))
+                scursor.execute('UPDATE tracks SET artist=?, album=?, albumartist=?, genre=?, duration=? WHERE file=?', (meta['artist'], meta['album'], meta['albumartist'], GENRE_SEPARATOR.join(meta['genres']), meta['duration'], track['db']))
 
 
 def file_already_analysed(scursor, path):
@@ -209,23 +232,23 @@ def convert_to_cue_url(path):
     return path
 
 
-def get_files_to_analyse(scursor, path, files, musly_root_len, tmp_path, tmp_path_len, tags_only):
+def get_files_to_analyse(scursor, path, files, musly_root_len, tmp_path, tmp_path_len, meta_only):
     if not os.path.exists(path):
         _LOGGER.error("'%s' does not exist" % path)
         return
     if os.path.isdir(path):
         for e in sorted(os.listdir(path)):
-            get_files_to_analyse(scursor, os.path.join(path, e), files, musly_root_len, tmp_path, tmp_path_len, tags_only)
+            get_files_to_analyse(scursor, os.path.join(path, e), files, musly_root_len, tmp_path, tmp_path_len, meta_only)
     elif path.rsplit('.', 1)[1].lower() in AUDIO_EXTENSIONS:
         if os.path.exists(path.rsplit('.', 1)[0]+'.cue'):
             for track in get_cue_tracks(path, musly_root_len, tmp_path):
-                if tags_only or not not file_already_analysed(scursor, track['file'][tmp_path_len:]):
+                if meta_only or not not file_already_analysed(scursor, track['file'][tmp_path_len:]):
                     files.append({'abs':track['file'], 'db':track['file'][tmp_path_len:], 'track':track, 'src':path})
-        elif tags_only or not file_already_analysed(scursor, path[musly_root_len:]):
+        elif meta_only or not file_already_analysed(scursor, path[musly_root_len:]):
             files.append({'abs':path, 'db':path[musly_root_len:]})
 
 
-def analyse_files(path, tags_only):
+def analyse_files(path, meta_only):
     global config
     global lms_db
 
@@ -239,12 +262,12 @@ def analyse_files(path, tags_only):
     temp_dir = config['paths']['tmp'] if 'tmp' in config['paths'] else None
     with tempfile.TemporaryDirectory(dir=temp_dir) as tmp_path:
         _LOGGER.debug('Temp folder: %s' % tmp_path)
-        get_files_to_analyse(scursor, path, files, musly_root_len, tmp_path+'/', len(tmp_path)+1, tags_only)
+        get_files_to_analyse(scursor, path, files, musly_root_len, tmp_path+'/', len(tmp_path)+1, meta_only)
         _LOGGER.debug('Num files: %d' % len(files))
         split_cue_tracks(files)
         if (len(files)>0):
             roots = [config['paths']['musly'], tmp_path+'/']
-            if not tags_only:
+            if not meta_only:
                 tracks = mus.analyze_files(scursor, files, roots, num_threads=config['threads'])
                 sconn.commit()
                 mus.add_tracks(tracks)
@@ -252,7 +275,7 @@ def analyse_files(path, tags_only):
             for file in files:
                 set_metadata(scursor, file)
             sconn.commit()
-            if not tags_only:
+            if not meta_only:
                 mus.write_jukebox(os.path.join(config['paths']['db'], JUKEBOX_FILE))
     _LOGGER.debug('Finished analysis')
 
@@ -288,6 +311,19 @@ def genre_matches(seed_genres, track):
     return False
 
 
+def check_duration(min_duration, max_duration, meta):
+    if 'duration' not in meta or meta['duration'] is None or meta['duration']<=0:
+        return True # No duration to check!
+
+    if min_duration>0 and meta['duration']<min_duration:
+        return False
+
+    if max_duration>0 and meta['duration']>max_duration:
+        return False
+
+    return True
+
+
 @app.route('/api/similar')
 def similar_api():
     global mta
@@ -303,7 +339,11 @@ def similar_api():
         count = 5
     elif count>50:
         count = 50
+
     match_genre = 'filtergenre' in params and params['filtergenre'][0]=='1'
+    min_duration = int(params['min'][0]) if 'min' in params else 0
+    max_duration = int(params['max'][0]) if 'max' in params else 0
+
     # Strip LMS root path from track path
     root = config['paths']['lms']
     genres = config['genre'][0]==1 if 'genre' in config else None
@@ -323,7 +363,10 @@ def similar_api():
     # Artist/album of chosen tracks
     current_metadata_keys={}
     current_metadata=[]
-    
+
+    if min_duration>0 or max_duration>0:
+        _LOGGER.debug('Duration:%d .. %d' % (min_duration, max_duration))
+
     (sconn, scursor) = init_db(os.path.join(config['paths']['db'], DB_FILE))
 
     # Musly IDs of seed traks
@@ -344,7 +387,6 @@ def similar_api():
             meta = get_metadata(scursor, track_id+1) # IDs in SQLite are 1.. musly is 0..
             _LOGGER.debug('Seed %d metadata:%s' % (track_id, json.dumps(meta)))
             if meta is not None:
-                _LOGGER.debug('a')
                 seed_metadata.append(meta)
                 # Get genres for this seed track - this takes its genres and gets any matching genres from config
                 if 'genres' in meta and 'genres' in config:
@@ -366,8 +408,10 @@ def similar_api():
                 similar_track_ids.append(resp_ids[i])
 
                 meta = get_metadata(scursor, resp_ids[i]+1) # IDs in SQLite are 1.. musly is 0..
-                if match_genre and not genre_matches(seed_genres, meta):
-                    _LOGGER.debug('IGNORE ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
+                if (min_duration>0 or max_duration>0) and not check_duration(min_duration, max_duration, meta):
+                    _LOGGER.debug('IGNORE(duration) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
+                elif match_genre and not genre_matches(seed_genres, meta):
+                    _LOGGER.debug('IGNORE(genre) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                 else:
                     if same_artist_or_album(seed_metadata, meta):
                         _LOGGER.debug('FILTERED(seeds) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
@@ -464,7 +508,7 @@ if __name__=='__main__':
     parser.add_argument('-c', '--config', type=str, help='Config file (default: config.json)', default='config.json')
     parser.add_argument('-l', '--log-level', action='store', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'], default='INFO', help='Set log level (default: %(default)s)')
     parser.add_argument('-a', '--analyse', metavar='PATH', type=str, help="Analyse file/folder (use 'm' for configured musly folder)", default='')
-    parser.add_argument('-t', '--tags-only', action='store_true', default=False, help='Update tags database only (used in conjuction with --analyse)')
+    parser.add_argument('-m', '--meta-only', action='store_true', default=False, help='Update metadata database only (used in conjuction with --analyse)')
     args = parser.parse_args()
     logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s',
                         level=args.log_level,
@@ -479,7 +523,7 @@ if __name__=='__main__':
     if args.analyse:
         path = config['paths']['musly'] if args.analyse =='m' else args.analyse
         _LOGGER.debug('Analyse %s' % path)
-        analyse_files(path, args.tags_only)
+        analyse_files(path, args.meta_only)
     else:
         _LOGGER.debug('Start server')
         flask_logging = logging.getLogger('werkzeug')
