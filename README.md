@@ -78,7 +78,9 @@ following syntax:
 
 If a seed track has `Hard Rock` as its genre, then only tracks with `Rock`,
 `Hard Rock`, or `Metal` will be allowed. If a seed track has a genre that is not
-listed here then any track returned by Musly will be considered acceptable.
+listed here then any track returned by Musly, that does not cotaiain any genre
+lsited here, will be considered acceptable. Therefore, if seed is `Pop` then
+a `Hard Rock` track would not be considered.
 
 ## Credits
 
