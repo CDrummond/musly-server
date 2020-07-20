@@ -15,7 +15,7 @@ from lib import musly
 
 DB_FILE = 'musly.db'
 JUKEBOX_FILE = 'musly.jukebox'
-AUDIO_EXTENSIONS = ['m4a', 'mp3', 'ogg', 'flac']
+AUDIO_EXTENSIONS = ['m4a', 'mp3', 'ogg', 'flac', 'opus']
 CUE_TRACK = '.CUE_TRACK.'
 VARIOUS_ARTISTS = ['Various', 'Various Artists']
 GENRE_SEPARATOR = ';'
