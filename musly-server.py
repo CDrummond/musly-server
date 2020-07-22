@@ -285,7 +285,7 @@ def same_artist_or_album(seeds, track):
     for seed in seeds:
         if seed['artist']==track['artist']:
             return True
-        if seed['album']==track['album'] and seed['albumartist']==track['albumartist'] and track['albumartist'] not in VARIOUS_ARTISTS:
+        if seed['album']==track['album'] and 'albumartist' in seed and 'albumartist' in track and seed['albumartist']==track['albumartist'] and track['albumartist'] not in VARIOUS_ARTISTS:
             return True
     return False
 
@@ -318,6 +318,13 @@ def is_christmas(track):
             if genre in CHRISTMAS_GENRES:
                 return True
 
+    return False
+
+
+def match_artist(artists, track):
+    for artist in artists:
+        if artist==track['artist'] or ('albumartist' in track and artist==track['albumartist']):
+            return True
     return False
 
 
@@ -423,6 +430,14 @@ def similar_api():
                 pass
         _LOGGER.debug('Have %d tracks to ignore' % len(ignore_track_ids))
 
+    exclude_artists = []
+    do_exclude_artists = False
+    if 'exclude' in params:
+        for artist in params['exclude']:
+            exclude_artists.append(artist.strip())
+        do_exclude_artists = len(exclude_artists)>0
+        _LOGGER.debug('Have %d artists to ignore %s' % (len(exclude_artists), exclude_artists))
+
     if match_genre:
         _LOGGER.debug('Seed genres: %s' % seed_genres)
 
@@ -439,6 +454,8 @@ def similar_api():
                     _LOGGER.debug('DISCARD(duration) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                 elif (match_genre and not genre_matches(seed_genres, meta)) or (exclude_christmas and is_christmas(meta)):
                     _LOGGER.debug('DISCARD(genre) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
+                elif do_exclude_artists and match_artist(exclude_artists, meta):
+                    _LOGGER.debug('DISCARD(artist) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                 else:
                     if same_artist_or_album(seed_metadata, meta):
                         _LOGGER.debug('FILTERED(seeds) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))

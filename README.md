@@ -41,7 +41,7 @@ number differs, the jukebox is recreated (which can take ~20mins)
 Only 1 API is currently supported:
 
 ```
-http://HOST:11000/api/similar?track=/path/of/track&track=/path/of/another/track&count=10&filtergenre=1&min=30&max=600&ignore=/path/to/ignore
+http://HOST:11000/api/similar?track=/path/of/track&track=/path/of/another/track&count=10&filtergenre=1&min=30&max=600&ignore=/path/to/ignore&filterxmas=1&exclude=ArtistA&exclude=ArtistB
 ```
 ...this will get 10 similar tracks to those supplied.
 
@@ -51,11 +51,17 @@ pre-configured set of genres (mapped from seed tracks) will be used. e.g. if
 tack's genre has `Metal` then only tracks with one of these 3 genres will be
 considered.
 
+If `filterxmas=1` is supplied, then tracks with 'Christmas' or 'Xmas' in their
+genres will be excluded - unless it is December.
+
 `min` and `max` can be used to set the minimum, and maximum, duration (in
 seconds) of tracks to be considered.
 
 `ignore` may be used to list tracks to ignore (e.g. tracks that are already in
 the queue). This parameter, like `track`, may be repeated multiple times.
+
+`exclude` may be used to lsit artists to ignpre. This parameter, like `track`,
+may be repeated multiple times.
 
 The API will try query Musly for 20 times the specified `count` tracks
 (default of 5) for each supplied seed track. (This is to allow for filtering
