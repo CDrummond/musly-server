@@ -26,6 +26,7 @@ JUKEBOX_FILE = 'musly.jukebox'
 AUDIO_EXTENSIONS = ['m4a', 'mp3', 'ogg', 'flac', 'opus']
 CUE_TRACK = '.CUE_TRACK.'
 VARIOUS_ARTISTS = ['Various', 'Various Artists']
+CHRISTMAS_GENRES = ['Christmas', 'Xmas']
 GENRE_SEPARATOR = ';'
 _LOGGER = logging.getLogger(__name__)
 app = Flask(__name__)
@@ -311,6 +312,15 @@ def genre_matches(seed_genres, track):
     return False
 
 
+def is_christmas(track):
+    if 'genres' in track and len(track['genres'])>=0:
+        for genre in track['genres']:
+            if genre in CHRISTMAS_GENRES:
+                return True
+
+    return False
+
+
 def check_duration(min_duration, max_duration, meta):
     if 'duration' not in meta or meta['duration'] is None or meta['duration']<=0:
         return True # No duration to check!
@@ -343,6 +353,7 @@ def similar_api():
     match_genre = 'filtergenre' in params and params['filtergenre'][0]=='1'
     min_duration = int(params['min'][0]) if 'min' in params else 0
     max_duration = int(params['max'][0]) if 'max' in params else 0
+    exclude_christmas = 'filterxmas' in params and params['filterxmas'][0]=='1' and datetime.now().month!=12
 
     # Strip LMS root path from track path
     root = config['paths']['lms']
@@ -426,7 +437,7 @@ def similar_api():
                 meta = get_metadata(scursor, resp_ids[i]+1) # IDs in SQLite are 1.. musly is 0..
                 if (min_duration>0 or max_duration>0) and not check_duration(min_duration, max_duration, meta):
                     _LOGGER.debug('DISCARD(duration) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
-                elif match_genre and not genre_matches(seed_genres, meta):
+                elif (match_genre and not genre_matches(seed_genres, meta)) or (exclude_christmas and is_christmas(meta)):
                     _LOGGER.debug('DISCARD(genre) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                 else:
                     if same_artist_or_album(seed_metadata, meta):
