@@ -63,13 +63,13 @@ the queue). This parameter, like `track`, may be repeated multiple times.
 `exclude` may be used to lsit artists to ignpre. This parameter, like `track`,
 may be repeated multiple times.
 
-The API will try query Musly for 20 times the specified `count` tracks
-(default of 5) for each supplied seed track. (This is to allow for filtering
-on genre, etc). Initally the API will ignore musly tracks from the same artist
-or album of the seed tracks (and any previous in the list). If, because of this
-filtering, there are less than the requested amount then the highest similarty
-tracks from the filtered-out list are chosen. Finally all tracks are sorted by
-similarity, with the most similar first.
+The API will try query Musly for 25 times the specified `count` tracks (default
+of 5) for each supplied seed track. (This is to allow for filtering on genre,
+etc). Initally the API will ignore musly tracks from the same artist or album of
+the seed tracks (and any previous in the list). If, because of this filtering,
+there are less than the requested amount then the highest similarty tracks from
+the filtered-out list are chosen. Finally all tracks are sorted by similarity,
+with the most similar first.
 
 This API is intended to be used by [LMS Musly DSTM Mixer](https://github.com/CDrummond/lms-muslymixer)
 
