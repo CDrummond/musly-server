@@ -66,10 +66,10 @@ may be repeated multiple times.
 The API will try query Musly for 25 times the specified `count` tracks (default
 of 5) for each supplied seed track. (This is to allow for filtering on genre,
 etc). Initally the API will ignore musly tracks from the same artist or album of
-the seed tracks (and any previous in the list). If, because of this filtering,
-there are less than the requested amount then the highest similarty tracks from
-the filtered-out list are chosen. Finally all tracks are sorted by similarity,
-with the most similar first.
+the seed tracks (and any previous in the list, and the last 10 `ignore` tracks).
+If, because of this filtering, there are less than the requested amount then the
+highest similarty tracks from the filtered-out lists are chosen. Finally all
+tracks are sorted by similarity, with the most similar first.
 
 Metadata for tracks is stored in an SQLite database, this has an `ignore` column
 which if set to `1` will cause the API to not use this track if it is returned

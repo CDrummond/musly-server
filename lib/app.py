@@ -87,6 +87,7 @@ def similar_api():
     # Similar tracks ignored because of artist/album
     filtered_by_seeds_tracks=[]
     filtered_by_current_tracks=[]
+    filtered_by_ignore_tracks=[]
     
     # Artist/album of seed tracks
     seed_metadata=[]
@@ -128,6 +129,7 @@ def similar_api():
                                         seed_genres.append(cg)
 
     ignore_track_ids = []
+    ignore_metadata = []
     if 'ignore' in params:
         for track in params['ignore']:
             if track.startswith(root):
@@ -135,11 +137,16 @@ def similar_api():
             # Check that musly knows about this track
             track_id = -1
             try:
-                track_id = mta.paths.index( track )
+                track_id = mta.paths.index(track)
                 if track_id is not None and track_id>=0:
                     ignore_track_ids.append(track_id)
+                    meta = meta_db.get_metadata(track_id+1) # IDs in SQLite are 1.. musly is 0..
+                    if meta:
+                        ignore_metadata.append(meta)
             except:
                 pass
+        if len(ignore_metadata)>10:
+            ignore_metadata=ignore_metadata[-10:]
         _LOGGER.debug('Have %d tracks to ignore' % len(ignore_track_ids))
 
     exclude_artists = []
@@ -179,6 +186,9 @@ def similar_api():
                     elif filters.same_artist_or_album(current_metadata, meta):
                         _LOGGER.debug('FILTERED(current) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                         filtered_by_current_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
+                    elif filters.same_artist_or_album(ignore_metadata, meta):
+                        _LOGGER.debug('FILTERED(ignore) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
+                        filtered_by_ignore_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
                     else:
                         key = '%s::%s::%s' % (meta['artist'], meta['album'], meta['albumartist'] if 'albumartist' in meta and meta['albumartist'] is not None else '')
                         if not key in current_metadata_keys:
@@ -190,7 +200,10 @@ def similar_api():
                         if accepted_tracks>=count:
                             break
 
-    # Too few tracks? Add some from the filtered list
+    # Too few tracks? Add some from the filtered lists
+    if len(similar_tracks)<count and len(filtered_by_ignore_tracks)>0:
+        filtered_by_ignore_tracks = sorted(filtered_by_ignore_tracks, key=lambda k: k['similarity'])
+        similar_tracks = similar_tracks + filtered_by_ignore_tracks[:count-len(similar_tracks)]
     if len(similar_tracks)<count and len(filtered_by_current_tracks)>0:
         filtered_by_seeds_tracks = sorted(filtered_by_current_tracks, key=lambda k: k['similarity'])
         similar_tracks = similar_tracks + filtered_by_current_tracks[:count-len(similar_tracks)]
