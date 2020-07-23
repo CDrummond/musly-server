@@ -247,7 +247,7 @@ def get_files_to_analyse(scursor, path, files, musly_root_len, tmp_path, tmp_pat
     elif path.rsplit('.', 1)[1].lower() in AUDIO_EXTENSIONS:
         if os.path.exists(path.rsplit('.', 1)[0]+'.cue'):
             for track in get_cue_tracks(path, musly_root_len, tmp_path):
-                if meta_only or not not file_already_analysed(scursor, track['file'][tmp_path_len:]):
+                if meta_only or not file_already_analysed(scursor, track['file'][tmp_path_len:]):
                     files.append({'abs':track['file'], 'db':track['file'][tmp_path_len:], 'track':track, 'src':path})
         elif meta_only or not file_already_analysed(scursor, path[musly_root_len:]):
             files.append({'abs':path, 'db':path[musly_root_len:]})
