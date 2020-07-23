@@ -47,6 +47,7 @@ def init_db(path):
                 albumartist varchar,
                 genre varchar,
                 duration integer,
+                ignore integer,
                 vals blob NOT NULL)''')
     scursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS tracks_idx ON tracks(file)')
     return sconn, scursor
@@ -59,11 +60,13 @@ def close_db(sconn, scursor):
 
 def get_metadata(scursor, i):
     try:
-        scursor.execute('SELECT artist, album, albumartist, genre, duration FROM tracks WHERE id=?', (i,))
+        scursor.execute('SELECT artist, album, albumartist, genre, duration, ignore FROM tracks WHERE id=?', (i,))
         row = scursor.fetchone()
         meta = {'artist':row[0], 'album':row[1], 'albumartist':row[2], 'duration':row[4]}
         if row[3] and len(row[3])>0:
             meta['genres']=row[3].split(GENRE_SEPARATOR)
+        if row[3] is not None and row[3]==1:
+            meta['ignore']=True
         return meta
     except Exception as e:
         _LOGGER.error('Failed to read metadata - %s' % str(e))
@@ -182,7 +185,7 @@ def get_cue_tracks(path, musly_root_len, tmp_path):
     if lms_db is not None:
         # Convert musly path into LMS path...
         lms_path = '%s%s' % (config['paths']['lms'], path[musly_root_len:])
-        # Get list of cue track from LMS db...
+        # Get list of cue tracks from LMS db...
         cursor = lms_db.execute("select url from tracks where url like '%%%s#%%'" % quote(lms_path))
         for row in cursor:
             parts=row[0].split('#')
@@ -293,7 +296,7 @@ def same_artist_or_album(seeds, track):
 
 def genre_matches(seed_genres, track):
     if 'genres' not in track or len(track['genres'])<1:
-        return True # Track has no genre? Then can't filtre out...
+        return True # Track has no genre? Then can't filter out...
 
     if len(seed_genres)<1:
         # No filtering for seed track genres
@@ -451,7 +454,9 @@ def similar_api():
                 similar_track_ids.append(resp_ids[i])
 
                 meta = get_metadata(scursor, resp_ids[i]+1) # IDs in SQLite are 1.. musly is 0..
-                if (min_duration>0 or max_duration>0) and not check_duration(min_duration, max_duration, meta):
+                if 'ignore' in meta and meta['ignore']:
+                    _LOGGER.debug('DISCARD(ignore) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
+                elif (min_duration>0 or max_duration>0) and not check_duration(min_duration, max_duration, meta):
                     _LOGGER.debug('DISCARD(duration) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                 elif (match_genre and not genre_matches(seed_genres, meta)) or (exclude_christmas and is_christmas(meta)):
                     _LOGGER.debug('DISCARD(genre) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
