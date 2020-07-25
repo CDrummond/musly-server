@@ -235,9 +235,6 @@ class Musly(object):
             smtracks_type = mtracks_type
             smtracks = mtracks
             snumtracks = numtracks
-        smtracks_type = mtracks_type
-        smtracks = mtracks
-        snumtracks = numtracks
         
         # int musly_jukebox_setmusicstyle (musly_jukebox * jukebox, musly_track **  tracks, int  num_tracks
         self.mus.musly_jukebox_setmusicstyle.argtypes = [ctypes.POINTER(MuslyJukebox), ctypes.POINTER(smtracks_type), ctypes.c_int ]

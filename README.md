@@ -21,10 +21,9 @@ accomplished via:
 ./musly-server.py --analyse /path/to/music/folder
 ```
 
-This takes about 1 hour to process 20k tracks. However, about 20 minutes of that
-is creating the 'Musly jukebox' file. If re-run only new tracks will be added,
-but the juekbox will need to be recreated, and hence _another_ 20 minutes. To
-remove tracks you will need to use an SQLite browser to manually remove entries.
+This takes about 50 minutes to process 20k tracks.  If re-run only new tracks
+will be added, but the juekbox will need to be recreated. To remove tracks
+you will need to use an SQLite browser to manually remove entries.
 
 ## Similarity API 
 
@@ -36,7 +35,7 @@ The API server can be installed as a Systemd service, or started manually:
 
 ...when the service starts, it will confirm that the number of traks in its
 SQLite database is the same as the number in the 'Musly jukebox'. If the
-number differs, the jukebox is recreated (which can take ~20mins)
+number differs, the jukebox is recreated.
 
 Only 1 API is currently supported:
 
