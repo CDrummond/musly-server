@@ -16,6 +16,12 @@ from . import cue, filters, metadata_db, musly
 
 _LOGGER = logging.getLogger(__name__)
 
+DEFAULT_TRACKS_TO_RETURN      = 5  # Number of tracks to return, if none specified
+MIN_TRACKS_TO_RETURN          = 5  # Min value for 'count' parameter
+MAX_TRACKS_TO_RETURN          = 50 # Max value for 'count' parameter
+MAX_INGORE_TRACKS_FILTER_META = 15 # How many of tracks in 'ignore' list should we also filter on metadata?
+NUM_SIMILAR_TRACKS_FACTOR     = 25 # Request count*NUM_SIMILAR_TRACKS_FACTOR frmo musly
+
 class MuslyApp(Flask):
     def init(self, args, mus, app_config, jukebox_path):
         _LOGGER.debug('Start server')
@@ -60,11 +66,11 @@ def similar_api():
         abort(400)
     tracks = params['track']
 
-    count = int(params['count'][0]) if 'count' in params else 5
-    if count<5:
-        count = 5
-    elif count>50:
-        count = 50
+    count = int(params['count'][0]) if 'count' in params else DEFAULT_TRACKS_TO_RETURN
+    if count < MIN_TRACKS_TO_RETURN:
+        count = MIN_TRACKS_TO_RETURN
+    elif count > MAX_TRACKS_TO_RETURN:
+        count = MAX_TRACKS_TO_RETURN
 
     match_genre = 'filtergenre' in params and params['filtergenre'][0]=='1'
     min_duration = int(params['min'][0]) if 'min' in params else 0
@@ -145,8 +151,8 @@ def similar_api():
                         ignore_metadata.append(meta)
             except:
                 pass
-        if len(ignore_metadata)>10:
-            ignore_metadata=ignore_metadata[-10:]
+        if len(ignore_metadata) > MAX_INGORE_TRACKS_FILTER_META:
+            ignore_metadata=ignore_metadata[-MAX_INGORE_TRACKS_FILTER_META:]
         _LOGGER.debug('Have %d tracks to ignore' % len(ignore_track_ids))
 
     exclude_artists = []
@@ -162,7 +168,7 @@ def similar_api():
 
     for track_id in track_ids:
         # Query musly for similar tracks
-        ( resp_ids, resp_similarity ) = mus.get_similars( mta.mtracks, mta.mtrackids, track_id, (count*25)+1 )
+        ( resp_ids, resp_similarity ) = mus.get_similars( mta.mtracks, mta.mtrackids, track_id, (count*NUM_SIMILAR_TRACKS_FACTOR)+1 )
         accepted_tracks = 0
         for i in range(1, len(resp_ids)):
             if not resp_ids[i] in track_ids and not resp_ids[i] in ignore_track_ids and not resp_ids[i] in similar_track_ids and resp_similarity[i]>0.0:
