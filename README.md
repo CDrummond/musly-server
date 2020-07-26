@@ -139,17 +139,41 @@ This has the following format:
 }
 ```
 
-* `libmusly` should contain the path the musy shared library - path is relative to `musly-server.py`
-* `paths.db` should be the path where the SQLite and jukebox files created by this app can be written
-* `paths.musly` should be the path where musly can access your music files. This can be different to `path.lms` if you are running analysis on a different machine to where you would run the script as the API server. This script will only store the paths relative to this location - eg. `paths.musly=/home/music/` then `/home/music/A/b.mp3` will be stored as `A/b.mp3`.
-* `paths.musly` should be the path where LMS access your music files. The API server will remove this path from API calls, so that it can look up tracks in its database by their relative path.
-* `paths.tmp` When analysing music, this script will create a temporary folder to hold separate CUE file tracks. The path passed here needs to be writable. This config item is only used for analysis.
-* `lmsdb` During analysis, this script will also analyse individual CUE tracks. To do this it needs access to the LMS database file to know the position of each track, etc. This config item should hole the path to the LMS database file. This is only required for analysis, and only if you have CUE files. `ffmpeg` is required to split tracks.
+* `libmusly` should contain the path the musy shared library - path is relative
+to `musly-server.py`
+* `paths.db` should be the path where the SQLite and jukebox files created by
+this app can be written
+* `paths.musly` should be the path where musly can access your music files. This
+can be different to `path.lms` if you are running analysis on a different
+machine to where you would run the script as the API server. This script will
+only store the paths relative to this location - eg. `paths.musly=/home/music/`
+then `/home/music/A/b.mp3` will be stored as `A/b.mp3`.
+* `paths.musly` should be the path where LMS access your music files. The API
+server will remove this path from API calls, so that it can look up tracks in
+its database by their relative path.
+* `paths.tmp` When analysing music, this script will create a temporary folder
+to hold separate CUE file tracks. The path passed here needs to be writable.
+This config item is only used for analysis.
+* `lmsdb` During analysis, this script will also analyse individual CUE tracks.
+To do this it needs access to the LMS database file to know the position of each
+track, etc. This config item should hole the path to the LMS database file. This
+is only required for analysis, and only if you have CUE files. `ffmpeg` is
+required to split tracks.
 * `genres` This is as described above.
 * `port` This is the port number the API is accessible on.
-* `host` IP addres on which the API will listen on. Use `0.0.0.0` to listen on all interfaces on your network.
-* `threads` Number of threads to use during analysis phase. This controls how many calls to `ffmpeg` are made concurrently, and how many concurrent tracks musly is asked to analyse.
-* `styletracks` A  subset of tracks is passed to musly's `setmusicstyle` function, by default 1000 random tracks is chosen. This config item can be used to alter this. Note, however, the larger the number here the longer it takes to for this call to complete. As a rough guide it takes ~1min per 1000 tracks. If you change this config item after the jukebox is written you will need to delete the jukebox file and restart the server.
+* `host` IP addres on which the API will listen on. Use `0.0.0.0` to listen on
+all interfaces on your network.
+* `threads` Number of threads to use during analysis phase. This controls how
+many calls to `ffmpeg` are made concurrently, and how many concurrent tracks
+musly is asked to analyse.
+* `styletracks` A  subset of tracks is passed to musly's `setmusicstyle`
+function, by default 1000 random tracks is chosen. Alternatively, you can
+specify a percentage (e.g. `25%`) in which case that percentage of tracks will
+be used. This config item can be used to alter this. Note, however, the larger
+the number here the longer it takes to for this call to complete. As a rough
+guide it takes ~1min per 1000 tracks. If you change this config item after the
+jukebox is written you will need to delete the jukebox file and restart the
+server.
 
 
 ## Credits

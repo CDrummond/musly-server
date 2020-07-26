@@ -213,6 +213,11 @@ class Musly(object):
 
     def add_tracks(self, mtracks, max_styletracks_tracks):
         numtracks = len(mtracks)
+        if (''+max_styletracks_tracks).find('%')>0:
+            pc = int(max_styletracks_tracks.split('%')[0])
+            max_styletracks_tracks = int((numtracks * pc)/100.0)
+            if numtracks>1500 and max_styletracks_tracks < 1000:
+                max_styletracks_tracks = 1000
         mtrackids_type = ctypes.c_int * numtracks
         mtrackids = mtrackids_type()
         mtracks_type = (ctypes.POINTER(self.mtrack_type)) * numtracks
