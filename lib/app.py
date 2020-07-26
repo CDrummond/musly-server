@@ -19,7 +19,7 @@ _LOGGER = logging.getLogger(__name__)
 DEFAULT_TRACKS_TO_RETURN      = 5  # Number of tracks to return, if none specified
 MIN_TRACKS_TO_RETURN          = 5  # Min value for 'count' parameter
 MAX_TRACKS_TO_RETURN          = 50 # Max value for 'count' parameter
-MAX_INGORE_TRACKS_FILTER_META = 15 # How many of tracks in 'ignore' list should we also filter on metadata?
+MAX_IGNORE_TRACKS_FILTER_META = 15 # How many of tracks in 'ignore' list should we also filter on metadata?
 NUM_SIMILAR_TRACKS_FACTOR     = 25 # Request count*NUM_SIMILAR_TRACKS_FACTOR frmo musly
 
 class MuslyApp(Flask):
@@ -151,8 +151,8 @@ def similar_api():
                         ignore_metadata.append(meta)
             except:
                 pass
-        if len(ignore_metadata) > MAX_INGORE_TRACKS_FILTER_META:
-            ignore_metadata=ignore_metadata[-MAX_INGORE_TRACKS_FILTER_META:]
+        if len(ignore_metadata) > MAX_IGNORE_TRACKS_FILTER_META:
+            ignore_metadata=ignore_metadata[-MAX_IGNORE_TRACKS_FILTER_META:]
         _LOGGER.debug('Have %d tracks to ignore' % len(ignore_track_ids))
 
     exclude_artists = []
