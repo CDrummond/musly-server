@@ -149,7 +149,7 @@ This has the following format:
 * `port` This is the port number the API is accessible on.
 * `host` IP addres on which the API will listen on. Use `0.0.0.0` to listen on all interfaces on your network.
 * `threads` Number of threads to use during analysis phase. This controls how many calls to `ffmpeg` are made concurrently, and how many concurrent tracks musly is asked to analyse.
-* `styletracks` A  subset of tracks is passed to musly's `setmusicstyle` function, by default 1000 random tracks is chosen. This config item can be used to alter this. Note, however, the larger the number here the longer it takes to for this call to complete. As a rough guide it takes ~1min per 1000 tracks.
+* `styletracks` A  subset of tracks is passed to musly's `setmusicstyle` function, by default 1000 random tracks is chosen. This config item can be used to alter this. Note, however, the larger the number here the longer it takes to for this call to complete. As a rough guide it takes ~1min per 1000 tracks. If you change this config item after the jukebox is written you will need to delete the jukebox file and restart the server.
 
 
 ## Credits
