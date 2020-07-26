@@ -16,7 +16,6 @@ __version__ = '0.0.3'
 _LOGGER = logging.getLogger(__name__)
 MUSLY_DECODER = b"libav"
 MUSLY_METHOD = b"timbre"
-MUSLY_MUSTYLENUMTRACKS = 1000
 
 MuslyTracksAdded = namedtuple("MuslyTracksAdded", "paths mtracks mtrackids")
 
@@ -212,7 +211,7 @@ class Musly(object):
         return analyzed_tracks
 
 
-    def add_tracks(self, mtracks):
+    def add_tracks(self, mtracks, max_jukebox_tracks):
         numtracks = len(mtracks)
         mtrackids_type = ctypes.c_int * numtracks
         mtrackids = mtrackids_type()
@@ -220,11 +219,11 @@ class Musly(object):
         _LOGGER.debug("add_tracks: numtracks = {}".format(numtracks))
         _LOGGER.debug("add_tracks: mtracks = {}".format(repr(mtracks)))
 
-        if numtracks > MUSLY_MUSTYLENUMTRACKS:
-            _LOGGER.debug("add_tracks: using subset for setmusicstyle")
-            snumtracks = MUSLY_MUSTYLENUMTRACKS
-            sample = random.sample(range(numtracks), k=MUSLY_MUSTYLENUMTRACKS)
-            smtracks_type = (ctypes.POINTER(self.mtrack_type)) * MUSLY_MUSTYLENUMTRACKS
+        if numtracks > max_jukebox_tracks:
+            _LOGGER.debug("add_tracks: using subset (%d of %d) for setmusicstyle" % (max_jukebox_tracks, numtracks))
+            snumtracks = max_jukebox_tracks
+            sample = random.sample(range(numtracks), k=max_jukebox_tracks)
+            smtracks_type = (ctypes.POINTER(self.mtrack_type)) * max_jukebox_tracks
             smtracks = smtracks_type()
             i = 0
             for s in sample:

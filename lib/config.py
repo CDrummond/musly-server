@@ -57,6 +57,9 @@ def read_config(path, analyse):
     if not 'threads' in config:
         config['threads']=8
 
+    if not 'jukeboxtracks' in config:
+        config['jukeboxtracks']=1000
+
     if 'genres' in config:
         config['all_genres']=[]
         for genres in config['genres']:
