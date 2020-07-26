@@ -7,7 +7,7 @@ Simple python3 API server to create a mix of music tracks for LMS.
 This service uses the [Musly audio music similarity library](https://github.com/dominikschnitzer/musly)
 This library needs to be compiled, and `config.json` (from this API project)
 updated to store the location of this library. This repo contains pre-built
-buit versions for:
+built versions for:
 
 1. Fedora32 64-bit
 2. Raspbian Buster 32-bit
@@ -21,9 +21,25 @@ accomplished via:
 ./musly-server.py --analyse /path/to/music/folder
 ```
 
-This takes about 50 minutes to process 20k tracks.  If re-run only new tracks
-will be added, but the juekbox will need to be recreated. To remove tracks
-you will need to use an SQLite browser to manually remove entries.
+This takes about 50 minutes to process 20k tracks. The process anylsys tracks,
+add them to musly, intialises musly's 'jukebox' style with 1000 random tracks,
+and extracts certain tags. If re-run only new tracks will be added. To remove
+tracks you will need to use an SQLite browser to manually remove entries.
+
+To analyse the musly path stored in the config file, the following shortcut can
+be used:
+
+```
+./musly-server.py --analyse m
+```
+
+### CUE files
+
+If the analysis locates a music file with a similarly named CUE file (e.g.
+`artist/album/album name.flac` and `artist/album/album name.cue`) then it will
+read the track listing from the LMS db file and use `ffmpeg` to split the
+music file into temporary 128kbps MP3 files for analysis. The files are removed
+once analysis is complete.
 
 ## Similarity API 
 
@@ -95,6 +111,46 @@ If a seed track has `Hard Rock` as its genre, then only tracks with `Rock`,
 listed here then any track returned by Musly, that does not cotaiain any genre
 lsited here, will be considered acceptable. Therefore, if seed is `Pop` then
 a `Hard Rock` track would not be considered.
+
+## Configuration
+
+The sever reads its configuration from a JSON file (default name is `config.json`).
+This has the following format:
+
+```
+{
+ "libmusly":"lib/x86-64/fedora32/libmusly.so",
+ "paths":{
+  "db":"/home/user/.local/share/musly/",
+  "musly":"/home/Music/",
+  "lms":"/media/Music/",
+  "tmp":"/tmp/"
+ },
+ "lmsdb":"/path/to/lms/Cache/library.db",
+ "genres":[
+  ["Alternative Rock", "Classic Rock", "Folk/Rock", "Hard Rock", "Indie Rock", "Punk Rock", "Rock"],
+  ["Dance", "Disco", "Hip-Hop", "Pop", "Pop/Folk", "Pop/Rock", "R&B", "Reggae", "Soul", "Trance"],
+  ["Gothic Metal", "Heavy Metal", "Power Metal", "Progressive Metal", "Progressive Rock", "Symphonic Metal", "Symphonic Power Metal"]
+ ],
+ "port":10000,
+ "host":"0.0.0.0",
+ "threads":8,
+ "jukeboxtracks":1000
+}
+```
+
+* `libmusly` should contain the path the musy shared library - path is relative to `musly-server.py`
+* `paths.db` should be the path where the SQLite and jukebox files created by this app can be written
+* `paths.musly` should be the path where musly can access your music files. This can be different to `path.lms` if you are running analysis on a different machine to where you would run the script as the API server. This script will only store the paths relative to this location - eg. `paths.musly=/home/music/` then `/home/music/A/b.mp3` will be stored as `A/b.mp3`.
+* `paths.musly` should be the path where LMS access your music files. The API server will remove this path from API calls, so that it can look up tracks in its database by their relative path.
+* `paths.tmp` When analysing music, this script will create a temporary folder to hold separate CUE file tracks. The path passed here needs to be writable. This config item is only used for analysis.
+* `lmsdb` During analysis, this script will also analyse individual CUE tracks. To do this it needs access to the LMS database file to know the position of each track, etc. This config item should hole the path to the LMS database file. This is only required for analysis, and only if you have CUE files. `ffmpeg` is required to split tracks.
+* `genres` This is as described above.
+* `port` This is the port number the API is accessible on.
+* `host` IP addres on which the API will listen on. Use `0.0.0.0` to listen on all interfaces on your network.
+* `threads` Number of threads to use during analysis phase. This controls how many calls to `ffmpeg` are made concurrently, and how many concurrent tracks musly is asked to analyse.
+* `styletracks` A  subset of tracks is passed to musly's `setmusicstyle` function, by default 1000 random tracks is chosen. This config item can be used to alter this. Note, however, the larger the number here the longer it takes to for this call to complete. As a rough guide it takes ~1min per 1000 tracks.
+
 
 ## Credits
 
