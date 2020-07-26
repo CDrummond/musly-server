@@ -49,7 +49,7 @@ def analyse_files(mus, config, path, meta_only, jukebox):
             roots = [config['paths']['musly'], tmp_path+'/']
             if not meta_only:
                 tracks = mus.analyze_files(meta_db.get_cursor(), files, roots, num_threads=config['threads'])
-                mus.add_tracks(tracks, config['jukeboxtracks'])
+                mus.add_tracks(tracks, config['styletracks'])
             _LOGGER.debug('Save metadata')
             for file in files:
                 meta_db.set_metadata(file)
