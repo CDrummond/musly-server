@@ -58,9 +58,23 @@ class MuslyApp(Flask):
     
 musly_app = MuslyApp(__name__)
 
-@musly_app.route('/api/similar')
+
+def get_value(params, key, defVal, isPost):
+    if isPost:
+        return params[key] if key in params else defVal
+    return params[key][0] if key in params else defVal
+
+@musly_app.route('/api/similar', methods=['GET', 'POST'])
 def similar_api():
-    params = request.args.to_dict(flat=False)
+    isPost = False
+    if request.method=='GET':
+        params = request.args.to_dict(flat=False)
+    else:
+        isPost = True
+        params = request.get_json()
+
+    if not params:
+        abort(400)
 
     if not 'track' in params:
         abort(400)
@@ -72,19 +86,18 @@ def similar_api():
     elif count > MAX_TRACKS_TO_RETURN:
         count = MAX_TRACKS_TO_RETURN
 
-    match_genre = 'filtergenre' in params and params['filtergenre'][0]=='1'
-    min_duration = int(params['min'][0]) if 'min' in params else 0
-    max_duration = int(params['max'][0]) if 'max' in params else 0
-    exclude_christmas = 'filterxmas' in params and params['filterxmas'][0]=='1' and datetime.now().month!=12
+    match_genre = get_value(params, 'filtergenre', '0', isPost)=='1'
+    min_duration = int(get_value(params, 'min', 0, isPost))
+    max_duration = int(get_value(params, 'max', 0, isPost))
+    exclude_christmas = get_value(params, 'filterxmas', '0', isPost)=='1' and datetime.now().month!=12
 
     mta = musly_app.get_mta()
     mus = musly_app.get_musly()
-    config = musly_app.get_config()
-    meta_db = metadata_db.MetadataDb(config)
+    cfg = musly_app.get_config()
+    meta_db = metadata_db.MetadataDb(cfg)
 
     # Strip LMS root path from track path
-    root = config['paths']['lms']
-    genres = config['genre'][0]==1 if 'genre' in config else None
+    root = cfg['paths']['lms']
     
     # Similar tracks
     similar_tracks=[]
@@ -126,9 +139,9 @@ def similar_api():
             if meta is not None:
                 seed_metadata.append(meta)
                 # Get genres for this seed track - this takes its genres and gets any matching genres from config
-                if 'genres' in meta and 'genres' in config:
+                if 'genres' in meta and 'genres' in cfg:
                     for genre in meta['genres']:
-                        for group in config['genres']:
+                        for group in cfg['genres']:
                             if genre in group:
                                 for cg in group:
                                     if not cg in seed_genres:
@@ -179,7 +192,7 @@ def similar_api():
                     _LOGGER.debug('DISCARD(ignore) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                 elif (min_duration>0 or max_duration>0) and not filters.check_duration(min_duration, max_duration, meta):
                     _LOGGER.debug('DISCARD(duration) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
-                elif match_genre and not filters.genre_matches(config, seed_genres, meta):
+                elif match_genre and not filters.genre_matches(cfg, seed_genres, meta):
                     _LOGGER.debug('DISCARD(genre) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                 elif exclude_christmas and filters.is_christmas(meta):
                     _LOGGER.debug('DISCARD(xmas) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
@@ -232,7 +245,7 @@ def similar_api():
         _LOGGER.debug('Path:%s' % path)
 
     meta_db.close()
-    if 'format' in params and 'text'==params['format'][0]:
+    if get_value(params, 'format', '', isPost)=='text':
         return '\n'.join(track_list)
     else:
         return json.dumps(track_list)

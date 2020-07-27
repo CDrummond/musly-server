@@ -112,6 +112,19 @@ listed here then any track returned by Musly, that does not cotaiain any genre
 lsited here, will be considered acceptable. Therefore, if seed is `Pop` then
 a `Hard Rock` track would not be considered.
 
+### HTTP Post
+
+Alternatively, the API may be accessed via a HTTP POST call. To do this, the
+params of the call are passed as a JSON object. eg.
+
+```
+{
+ "track":["/path/trackA.mp3", "/path/trackB.mp3"],
+ "filtergenre":1,
+ "count":10
+}
+```
+
 ## Configuration
 
 The sever reads its configuration from a JSON file (default name is `config.json`).
