@@ -80,7 +80,7 @@ def similar_api():
         abort(400)
     tracks = params['track']
 
-    count = int(params['count'][0]) if 'count' in params else DEFAULT_TRACKS_TO_RETURN
+    count = int(get_value(params, 'count', DEFAULT_TRACKS_TO_RETURN, isPost))
     if count < MIN_TRACKS_TO_RETURN:
         count = MIN_TRACKS_TO_RETURN
     elif count > MAX_TRACKS_TO_RETURN:
