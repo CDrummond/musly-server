@@ -1,5 +1,5 @@
 #
-# Analyse files with Musly, and provide an API to retrieve simialr tracks
+# Analyse files with Musly, and provide an API to retrieve similar tracks
 #
 # Copyright (c) 2020 Craig Drummond <craig.p.drummond@gmail.com>
 # GPLv3 license.
