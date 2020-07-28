@@ -72,3 +72,8 @@ def convert_to_cue_url(path):
         path='file://'+path.replace(CUE_TRACK, '#')
         return path[:-4]
     return path
+
+
+def convert_to_source(path):
+    cue = path.find(CUE_TRACK)
+    return path[:cue] if cue>0 else path

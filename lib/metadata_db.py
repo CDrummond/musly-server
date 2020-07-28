@@ -9,7 +9,7 @@ import json
 import logging
 import os
 import sqlite3
-from . import tags
+from . import cue, tags
 
 DB_FILE = 'musly.db'
 GENRE_SEPARATOR = ';'
@@ -71,6 +71,38 @@ class MetadataDb(object):
                     self.cursor.execute('UPDATE tracks SET artist=?, album=?, albumartist=?, duration=? WHERE file=?', (meta['artist'], meta['album'], meta['albumartist'], meta['duration'], track['db']))
                 else:
                     self.cursor.execute('UPDATE tracks SET artist=?, album=?, albumartist=?, genre=?, duration=? WHERE file=?', (meta['artist'], meta['album'], meta['albumartist'], GENRE_SEPARATOR.join(meta['genres']), meta['duration'], track['db']))
+
+
+    def remove_old_tracks(self, source_path):
+        non_existant_files = []
+        _LOGGER.debug('Looking for old tracks to remove')
+        try:
+            self.cursor.execute('SELECT file FROM tracks')
+            rows = self.cursor.fetchall()
+            for row in rows:
+                if not os.path.exists(os.path.join(source_path, cue.convert_to_source(row[0]))):
+                    _LOGGER.debug("'%s' no longer exists" % row[0])
+                    non_existant_files.append(row[0])
+
+            _LOGGER.debug('Num old tracks: %d' % len(non_existant_files))
+            if len(non_existant_files)>0:
+                # Remove entries...
+                for path in non_existant_files:
+                    self.cursor.execute('DELETE from tracks where file=?', (path, ))
+
+                # Calculate new ID values...
+                self.cursor.execute('SELECT id, file FROM tracks')
+                rows = self.cursor.fetchall()
+                row_id = 1
+                for row in rows:
+                    if row[0]!=row_id:
+                        self.cursor.execute('UPDATE tracks SET id=? WHERE file=?', (row_id, row[1]))
+                    row_id +=1
+                return True
+        except Exception as e:
+            _LOGGER.error('Failed to remove old tracks - %s' % str(e))
+            pass
+        return False
 
 
     def file_already_analysed(self, path):

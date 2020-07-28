@@ -30,7 +30,7 @@ def get_files_to_analyse(meta_db, lms_db, lms_path, path, files, musly_root_len,
             files.append({'abs':path, 'db':path[musly_root_len:]})
 
 
-def analyse_files(mus, config, path, meta_only, jukebox):
+def analyse_files(mus, config, path, remove_tracks, meta_only, jukebox):
     _LOGGER.debug('Analyse %s' % path)
     meta_db = metadata_db.MetadataDb(config)
     lms_db = sqlite3.connect(config['lmsdb']) if 'lmsdb' in config else None
@@ -38,23 +38,28 @@ def analyse_files(mus, config, path, meta_only, jukebox):
     files = []
     musly_root_len = len(config['paths']['musly'])
     lms_path = config['paths']['lms']
-
     temp_dir = config['paths']['tmp'] if 'tmp' in config['paths'] else None
+    removed_tracks = meta_db.remove_old_tracks(config['paths']['musly']) if remove_tracks and not meta_only else False
+
     with tempfile.TemporaryDirectory(dir=temp_dir) as tmp_path:
         _LOGGER.debug('Temp folder: %s' % tmp_path)
         get_files_to_analyse(meta_db, lms_db, lms_path, path, files, musly_root_len, tmp_path+'/', len(tmp_path)+1, meta_only)
-        _LOGGER.debug('Num files: %d' % len(files))
+        _LOGGER.debug('Num tracks to update: %d' % len(files))
         cue.split_cue_tracks(files, config['threads'])
-        if (len(files)>0):
+        added_tracks = len(files)>0
+        if added_tracks or removed_tracks:
             roots = [config['paths']['musly'], tmp_path+'/']
-            if not meta_only:
-                tracks = mus.analyze_files(meta_db.get_cursor(), files, roots, num_threads=config['threads'])
-                mus.add_tracks(tracks, config['styletracks'])
-            _LOGGER.debug('Save metadata')
-            for file in files:
-                meta_db.set_metadata(file)
+            if added_tracks and not meta_only:
+                mus.analyze_files(meta_db.get_cursor(), files, roots, num_threads=config['threads'])
+            if removed_tracks or (added_tracks and not meta_only):
+                (paths, db_tracks) = mus.get_alltracks_db(meta_db.get_cursor())
+                mus.add_tracks(db_tracks, config['styletracks'])
+            if added_tracks:
+                _LOGGER.debug('Save metadata')
+                for file in files:
+                    meta_db.set_metadata(file)
             meta_db.commit()
             meta_db.close()
-            if not meta_only:
+            if removed_tracks or not meta_only:
                 mus.write_jukebox(jukebox)
     _LOGGER.debug('Finished analysis')

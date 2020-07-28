@@ -23,8 +23,8 @@ accomplished via:
 
 This takes about 50 minutes to process 20k tracks. The process anylsys tracks,
 add them to musly, intialises musly's 'jukebox' style with 1000 random tracks,
-and extracts certain tags. If re-run only new tracks will be added. To remove
-tracks you will need to use an SQLite browser to manually remove entries.
+and extracts certain tags. If re-run new tracks will be added, and old
+(non-existant) will be removed. Pass `--keep-old` to keep these old tracks.
 
 To analyse the musly path stored in the config file, the following shortcut can
 be used:
