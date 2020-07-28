@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import sqlite3
+import urllib
 from flask import Flask, abort, request
 from . import cue, filters, metadata_db, musly
 
@@ -64,6 +65,18 @@ def get_value(params, key, defVal, isPost):
         return params[key] if key in params else defVal
     return params[key][0] if key in params else defVal
 
+
+def decode(url, root):
+    u = urllib.parse.unquote(url)
+    if u.startswith('file://'):
+        u=u[7:]
+    elif u.startswith('tmp://'):
+        u=u[6:]
+    if u.startswith(root):
+        u=u[len(root):]
+    return cue.convert_from_cue_path(u)
+
+
 @musly_app.route('/api/similar', methods=['GET', 'POST'])
 def similar_api():
     isPost = False
@@ -72,13 +85,13 @@ def similar_api():
     else:
         isPost = True
         params = request.get_json()
+        _LOGGER.debug('Request: %s' % json.dumps(params))
 
     if not params:
         abort(400)
 
     if not 'track' in params:
         abort(400)
-    tracks = params['track']
 
     count = int(get_value(params, 'count', DEFAULT_TRACKS_TO_RETURN, isPost))
     if count < MIN_TRACKS_TO_RETURN:
@@ -121,9 +134,9 @@ def similar_api():
 
     # Musly IDs of seed tracks
     track_ids = []
-    for track in tracks:
-        if track.startswith(root):
-            track=track[len(root):]
+    for trk in params['track']:
+        track = decode(trk, root)
+        _LOGGER.debug('S TRACK %s -> %s' % (trk, track))
 
         # Check that musly knows about this track
         track_id = -1
@@ -146,27 +159,32 @@ def similar_api():
                                 for cg in group:
                                     if not cg in seed_genres:
                                         seed_genres.append(cg)
+        else:
+            _LOGGER.debug('Could not locate %s in DB' % track)
 
     ignore_track_ids = []
     ignore_metadata = []
     if 'ignore' in params:
-        for track in params['ignore']:
-            if track.startswith(root):
-                track=track[len(root):]
+        for trk in params['ignore']:
+            track = decode(trk, root)
+            _LOGGER.debug('I TRACK %s -> %s' % (trk, track))
+
             # Check that musly knows about this track
             track_id = -1
             try:
                 track_id = mta.paths.index(track)
-                if track_id is not None and track_id>=0:
-                    ignore_track_ids.append(track_id)
-                    meta = meta_db.get_metadata(track_id+1) # IDs in SQLite are 1.. musly is 0..
-                    if meta:
-                        ignore_metadata.append(meta)
             except:
                 pass
+            if track_id is not None and track_id>=0:
+                ignore_track_ids.append(track_id)
+                meta = meta_db.get_metadata(track_id+1) # IDs in SQLite are 1.. musly is 0..
+                if meta:
+                    ignore_metadata.append(meta)
+            else:
+                _LOGGER.debug('Could not locate %s in DB' % track)
         if len(ignore_metadata) > MAX_IGNORE_TRACKS_FILTER_META:
             ignore_metadata=ignore_metadata[-MAX_IGNORE_TRACKS_FILTER_META:]
-        _LOGGER.debug('Have %d tracks to ignore' % len(ignore_track_ids))
+        _LOGGER.debug('Have %d tracks to ignore %s %s' % (len(ignore_track_ids), ignore_track_ids, json.dumps(ignore_metadata)))
 
     exclude_artists = []
     do_exclude_artists = False
@@ -181,10 +199,11 @@ def similar_api():
 
     for track_id in track_ids:
         # Query musly for similar tracks
+        _LOGGER.debug('Query musly for %d similar tracks to index: %d' % ((count*NUM_SIMILAR_TRACKS_FACTOR)+1, track_id))
         ( resp_ids, resp_similarity ) = mus.get_similars( mta.mtracks, mta.mtrackids, track_id, (count*NUM_SIMILAR_TRACKS_FACTOR)+1 )
         accepted_tracks = 0
-        for i in range(1, len(resp_ids)):
-            if not resp_ids[i] in track_ids and not resp_ids[i] in ignore_track_ids and not resp_ids[i] in similar_track_ids and resp_similarity[i]>0.0:
+        for i in range(1, len(resp_ids)): # Ignore 1st track, as its the seed
+            if (not resp_ids[i] in track_ids) and (not resp_ids[i] in ignore_track_ids) and (not resp_ids[i] in similar_track_ids) and (resp_similarity[i]>0.0):
                 similar_track_ids.append(resp_ids[i])
 
                 meta = meta_db.get_metadata(resp_ids[i]+1) # IDs in SQLite are 1.. musly is 0..

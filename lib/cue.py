@@ -74,6 +74,13 @@ def convert_to_cue_url(path):
     return path
 
 
+def convert_from_cue_path(path):
+    hsh = path.find('#')
+    if hsh>0:
+        return path.replace('#', CUE_TRACK)+'.mp3'
+    return path
+
+
 def convert_to_source(path):
     cue = path.find(CUE_TRACK)
     return path[:cue] if cue>0 else path
