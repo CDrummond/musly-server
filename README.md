@@ -75,8 +75,12 @@ seconds) of tracks to be considered.
 `ignore` may be used to list tracks to ignore (e.g. tracks that are already in
 the queue). This parameter, like `track`, may be repeated multiple times.
 
-`exclude` may be used to lsit artists to ignpre. This parameter, like `track`,
-may be repeated multiple times.
+`excludeartist` may be used to list artists to ignore. This parameter, like
+`track`, may be repeated multiple times.
+
+`excludealbum` may be used to list albums to ignore. The format of this is
+`albumarist - albumname` This parameter, like `track`, may be repeated multiple
+times.
 
 The API will try query Musly for 25 times the specified `count` tracks (default
 of 5) for each supplied seed track. (This is to allow for filtering on genre,

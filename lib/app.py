@@ -20,8 +20,9 @@ _LOGGER = logging.getLogger(__name__)
 DEFAULT_TRACKS_TO_RETURN      = 5  # Number of tracks to return, if none specified
 MIN_TRACKS_TO_RETURN          = 5  # Min value for 'count' parameter
 MAX_TRACKS_TO_RETURN          = 50 # Max value for 'count' parameter
-MAX_IGNORE_TRACKS_FILTER_META = 15 # How many of tracks in 'ignore' list should we also filter on metadata?
-NUM_SIMILAR_TRACKS_FACTOR     = 25 # Request count*NUM_SIMILAR_TRACKS_FACTOR frmo musly
+MAX_IGNORE_TRACKS_FILTER_META = 15 # How many of tracks in 'ignore' list should we also filter on metadata (artist and/or album)?
+                                   # Rest of tracks from 'ingore' will be ignore by album (i.e artist+album) only
+NUM_SIMILAR_TRACKS_FACTOR     = 25 # Request count*NUM_SIMILAR_TRACKS_FACTOR from musly
 
 class MuslyApp(Flask):
     def init(self, args, mus, app_config, jukebox_path):
@@ -163,7 +164,8 @@ def similar_api():
             _LOGGER.debug('Could not locate %s in DB' % track)
 
     ignore_track_ids = []
-    ignore_metadata = []
+    ignore_metadata = [] # Ignore tracks with same meta-data, i.e. artist
+    ignore_album_metadata = [] # Ignore tracks from same album
     if 'ignore' in params:
         for trk in params['ignore']:
             track = decode(trk, root)
@@ -183,16 +185,26 @@ def similar_api():
             else:
                 _LOGGER.debug('Could not locate %s in DB' % track)
         if len(ignore_metadata) > MAX_IGNORE_TRACKS_FILTER_META:
+            ignore_album_metadata=ignore_metadata[:-MAX_IGNORE_TRACKS_FILTER_META]
             ignore_metadata=ignore_metadata[-MAX_IGNORE_TRACKS_FILTER_META:]
         _LOGGER.debug('Have %d tracks to ignore %s %s' % (len(ignore_track_ids), ignore_track_ids, json.dumps(ignore_metadata)))
 
     exclude_artists = []
     do_exclude_artists = False
-    if 'exclude' in params:
-        for artist in params['exclude']:
+    exclude_key = 'excludeartist' if 'excludeartist' in params else 'exclude'
+    if exclude_key in params:
+        for artist in params[exclude_key]:
             exclude_artists.append(artist.strip())
         do_exclude_artists = len(exclude_artists)>0
-        _LOGGER.debug('Have %d artists to ignore %s' % (len(exclude_artists), exclude_artists))
+        _LOGGER.debug('Have %d artists to exclude %s' % (len(exclude_artists), exclude_artists))
+
+    exclude_albums = []
+    do_exclude_albums = False
+    if 'excludealbum' in params:
+        for album in params['excludealbum']:
+            exclude_albums.append(album.strip())
+        do_exclude_albums = len(exclude_albums)>0
+        _LOGGER.debug('Have %d albums to exclude %s' % (len(exclude_albums), exclude_albums))
 
     if match_genre:
         _LOGGER.debug('Seed genres: %s' % seed_genres)
@@ -217,6 +229,8 @@ def similar_api():
                     _LOGGER.debug('DISCARD(xmas) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                 elif do_exclude_artists and filters.match_artist(exclude_artists, meta):
                     _LOGGER.debug('DISCARD(artist) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
+                elif do_exclude_albums and filters.match_album(exclude_albums, meta):
+                    _LOGGER.debug('DISCARD(album) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                 else:
                     if filters.same_artist_or_album(seed_metadata, meta):
                         _LOGGER.debug('FILTERED(seeds) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
@@ -226,6 +240,9 @@ def similar_api():
                         filtered_by_current_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
                     elif filters.same_artist_or_album(ignore_metadata, meta):
                         _LOGGER.debug('FILTERED(ignore) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
+                        filtered_by_ignore_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
+                    elif filters.same_artist_or_album(ignore_album_metadata, meta, True):
+                        _LOGGER.debug('FILTERED(ignore(album)) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                         filtered_by_ignore_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
                     else:
                         key = '%s::%s::%s' % (meta['artist'], meta['album'], meta['albumartist'] if 'albumartist' in meta and meta['albumartist'] is not None else '')

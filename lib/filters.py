@@ -8,9 +8,9 @@
 VARIOUS_ARTISTS = ['Various', 'Various Artists']
 CHRISTMAS_GENRES = ['Christmas', 'Xmas']
 
-def same_artist_or_album(seeds, track):
+def same_artist_or_album(seeds, track, check_album_only=False):
     for seed in seeds:
-        if seed['artist']==track['artist']:
+        if seed['artist']==track['artist'] and not check_album_only:
             return True
         if seed['album']==track['album'] and 'albumartist' in seed and 'albumartist' in track and seed['albumartist']==track['albumartist'] and track['albumartist'] not in VARIOUS_ARTISTS:
             return True
@@ -52,6 +52,14 @@ def match_artist(artists, track):
         if artist==track['artist'] or ('albumartist' in track and artist==track['albumartist']):
             return True
     return False
+
+
+def match_album(albums, track):
+    if (not 'album' in track) or ( ('albumartist' not in track) and ('artist' not in track)):
+        return False
+
+    album = '%s - %s' % (track['albumartist'] if 'albumartist' in track else track['artist'], track['album'])
+    return album in albums
 
 
 def check_duration(min_duration, max_duration, meta):
