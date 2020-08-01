@@ -278,7 +278,7 @@ def similar_api():
     for track in similar_tracks:
         path = '%s%s' % (root, track['path'])
         track_list.append(cue.convert_to_cue_url(path))
-        _LOGGER.debug('Path:%s' % path)
+        _LOGGER.debug('Path:%s %f' % (path, track['similarity']))
 
     meta_db.close()
     if get_value(params, 'format', '', isPost)=='text':
