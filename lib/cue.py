@@ -69,7 +69,8 @@ def split_cue_tracks(files, num_threads):
 def convert_to_cue_url(path):
     cue = path.find(CUE_TRACK)
     if cue>0:
-        path='file://'+path.replace(CUE_TRACK, '#')
+        parts = path.replace(CUE_TRACK, '#').split('#')
+        path='file://'+quote(parts[0])+'#'+parts[1]
         return path[:-4]
     return path
 
