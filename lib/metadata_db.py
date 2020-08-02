@@ -91,7 +91,7 @@ class MetadataDb(object):
                     self.cursor.execute('DELETE from tracks where file=?', (path, ))
 
                 # Calculate new ID values...
-                self.cursor.execute('SELECT id, file FROM tracks')
+                self.cursor.execute('SELECT id, file FROM tracks ORDER BY id ASC')
                 rows = self.cursor.fetchall()
                 row_id = 1
                 for row in rows:
