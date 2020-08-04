@@ -219,7 +219,9 @@ def similar_api():
                 similar_track_ids.append(resp_ids[i])
 
                 meta = meta_db.get_metadata(resp_ids[i]+1) # IDs in SQLite are 1.. musly is 0..
-                if 'ignore' in meta and meta['ignore']:
+                if not meta:
+                    _LOGGER.debug('DISCARD(not found) ID:%d Path:%s Similarity:%f' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i]))
+                elif 'ignore' in meta and meta['ignore']:
                     _LOGGER.debug('DISCARD(ignore) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                 elif (min_duration>0 or max_duration>0) and not filters.check_duration(min_duration, max_duration, meta):
                     _LOGGER.debug('DISCARD(duration) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
