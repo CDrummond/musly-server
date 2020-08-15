@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 #
-# LMS-AutoPlay
+# Musly Server
 #
 # Copyright (c) 2020 Craig Drummond <craig.p.drummond@gmail.com>
-# MIT license.
+# GPLv3 license.
 #
 
 import hashlib
@@ -53,7 +53,18 @@ def checkVersionExists(version):
     if request.status_code == 200 or request.status_code == 302:
         error("Version already exists")
 
-        
+
+def updateVersion(version):
+    path = os.path.join('lib', 'version.py')
+    os.remove(path)
+    with open(path, "w") as f:
+        f.write("MUSLY_SERVER_VERSION='%s'\n" % version)
+
+
+def resetVersion():
+    subprocess.call(['git', 'checkout', os.path.join('lib', 'version.py')], shell=False)
+
+
 def createZip(version):
     info("Creating ZIP")
     cmd=["zip", "-r", "%s-%s.zip" % (APP_NAME, version), "ChangeLog", "README.md", "LICENSE", "musly-server.py", "musly-server.service", "config.json"]
@@ -67,6 +78,9 @@ version=sys.argv[1]
 if version!="test":
     checkVersion(version)
     checkVersionExists(version)
+    updateVersion(version)
 
 createZip(version)
 
+if version!="test":
+    resetVersion();

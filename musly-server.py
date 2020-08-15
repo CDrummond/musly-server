@@ -10,13 +10,13 @@
 import argparse
 import logging
 import os
-from lib import analysis, app, config, metadata_db, musly
+from lib import analysis, app, config, metadata_db, musly, version
 
 JUKEBOX_FILE = 'musly.jukebox'
 _LOGGER = logging.getLogger(__name__)
         
 if __name__=='__main__':
-    parser = argparse.ArgumentParser(description='Musly API Server')
+    parser = argparse.ArgumentParser(description='Musly API Server (v%s)' % version.MUSLY_SERVER_VERSION)
     parser.add_argument('-c', '--config', type=str, help='Config file (default: config.json)', default='config.json')
     parser.add_argument('-l', '--log-level', action='store', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'], default='INFO', help='Set log level (default: %(default)s)')
     parser.add_argument('-a', '--analyse', metavar='PATH', type=str, help="Analyse file/folder (use 'm' for configured musly folder)", default='')
