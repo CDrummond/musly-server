@@ -67,11 +67,15 @@ def resetVersion():
 
 def createZip(version):
     info("Creating ZIP")
-    cmd=["zip", "-r", "%s-%s.zip" % (APP_NAME, version), "ChangeLog", "README.md", "LICENSE", "musly-server.py", "musly-server.service", "config.json"]
-    for e in os.listdir("lib"):
+    os.chdir('..')
+    cmd=["zip", "-r", "%s/%s-%s.zip" % (APP_NAME, APP_NAME, version)]
+    for f in ["ChangeLog", "config.json", "LICENSE", "musly-server.py", "musly-server.service", "README.md"]:
+        cmd.append("%s/%s" % (APP_NAME, f))
+    for e in os.listdir("%s/lib" % APP_NAME):
         if e.endswith(".py") or e in ["armv7l", "x86-64"]:
-            cmd.append("lib/%s" % e)
+            cmd.append("%s/lib/%s" % (APP_NAME, e))
     subprocess.call(cmd, shell=False)
+    os.chdir(APP_NAME)
 
 
 version=sys.argv[1]
