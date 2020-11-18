@@ -101,6 +101,8 @@ def similar_api():
         count = MAX_TRACKS_TO_RETURN
 
     match_genre = get_value(params, 'filtergenre', '0', isPost)=='1'
+    min_similarity = int(get_value(params, 'minsim', 5, isPost))/100.0
+    max_similarity = int(get_value(params, 'maxsim', 75, isPost))/100.0
     min_duration = int(get_value(params, 'min', 0, isPost))
     max_duration = int(get_value(params, 'max', 0, isPost))
     exclude_christmas = get_value(params, 'filterxmas', '0', isPost)=='1' and datetime.now().month!=12
@@ -215,7 +217,7 @@ def similar_api():
         ( resp_ids, resp_similarity ) = mus.get_similars( mta.mtracks, mta.mtrackids, track_id, (count*NUM_SIMILAR_TRACKS_FACTOR)+1 )
         accepted_tracks = 0
         for i in range(1, len(resp_ids)): # Ignore 1st track, as its the seed
-            if (not resp_ids[i] in track_ids) and (not resp_ids[i] in ignore_track_ids) and (not resp_ids[i] in similar_track_ids) and (resp_similarity[i]>0.0):
+            if (not resp_ids[i] in track_ids) and (not resp_ids[i] in ignore_track_ids) and (not resp_ids[i] in similar_track_ids) and (resp_similarity[i]>=min_similarity) and (resp_similarity[i]<=max_similarity):
                 similar_track_ids.append(resp_ids[i])
 
                 meta = meta_db.get_metadata(resp_ids[i]+1) # IDs in SQLite are 1.. musly is 0..

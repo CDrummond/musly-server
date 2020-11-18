@@ -82,6 +82,11 @@ the queue). This parameter, like `track`, may be repeated multiple times.
 `albumarist - albumname` This parameter, like `track`, may be repeated multiple
 times.
 
+`minsim` and `maxsim` (integers in the range 0..100) can be used to restrict the
+usable similarity range. A similarity of 0 implies track is almost identical,
+100 would be completely different. By default `minsim` is set to 5, and `maxsim`
+to 75.
+
 The API will try query Musly for 25 times the specified `count` tracks (default
 of 5) for each supplied seed track. (This is to allow for filtering on genre,
 etc). Initally the API will ignore musly tracks from the same artist or album of
