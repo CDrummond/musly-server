@@ -48,9 +48,8 @@ def analyse_files(mus, config, path, remove_tracks, meta_only, jukebox):
         cue.split_cue_tracks(files, config['threads'])
         added_tracks = len(files)>0
         if added_tracks or removed_tracks:
-            roots = [config['paths']['musly'], tmp_path+'/']
             if added_tracks and not meta_only:
-                mus.analyze_files(meta_db.get_cursor(), files, roots, num_threads=config['threads'])
+                mus.analyze_files(meta_db.get_cursor(), files, num_threads=config['threads'])
             if removed_tracks or (added_tracks and not meta_only):
                 (paths, db_tracks) = mus.get_alltracks_db(meta_db.get_cursor())
                 mus.add_tracks(db_tracks, config['styletracks'])
