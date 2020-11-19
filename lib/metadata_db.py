@@ -49,7 +49,7 @@ class MetadataDb(object):
             meta = {'artist':row[0], 'album':row[1], 'albumartist':row[2], 'duration':row[4]}
             if row[3] and len(row[3])>0:
                 meta['genres']=row[3].split(GENRE_SEPARATOR)
-            if row[3] is not None and row[3]==1:
+            if row[5] is not None and row[5]==1:
                 meta['ignore']=True
             return meta
         except Exception as e:

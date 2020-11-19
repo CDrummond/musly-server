@@ -1,6 +1,7 @@
 0.0.3
 -----
 1. Add 'minsim' and 'maxsim' parameters to control the similarity range.
+2. Fix reading, and usage, of 'ingore' DB column.
 
 0.0.2
 -----
