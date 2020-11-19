@@ -1,12 +1,11 @@
-0.0.3
------
-1. Add 'minsim' and 'maxsim' parameters to control the similarity range.
-2. Fix reading, and usage, of 'ingore' DB column.
-
 0.0.2
 -----
 1. Add version string.
 2. Place ZIP contents into musly-server folder.
+3. Add 'minsim' and 'maxsim' parameters to control the similarity range.
+4. Fix reading, and usage, of 'ingore' DB column.
+5. Remove 'id' column, and use rowid instead.
+6. Vacumm DB after removing tracks to reset rowids.
 
 0.0.1
 -----

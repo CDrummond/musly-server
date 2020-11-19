@@ -21,7 +21,6 @@ class MetadataDb(object):
         self.conn = sqlite3.connect(path)
         self.cursor = self.conn.cursor()
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS tracks (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     file varchar UNIQUE NOT NULL,
                     artist varchar,
                     album varchar,
@@ -44,7 +43,7 @@ class MetadataDb(object):
 
     def get_metadata(self, i):
         try:
-            self.cursor.execute('SELECT artist, album, albumartist, genre, duration, ignore FROM tracks WHERE id=?', (i,))
+            self.cursor.execute('SELECT artist, album, albumartist, genre, duration, ignore FROM tracks WHERE rowid=?', (i,))
             row = self.cursor.fetchone()
             meta = {'artist':row[0], 'album':row[1], 'albumartist':row[2], 'duration':row[4]}
             if row[3] and len(row[3])>0:
@@ -53,7 +52,7 @@ class MetadataDb(object):
                 meta['ignore']=True
             return meta
         except Exception as e:
-            _LOGGER.error('Failed to read metadata - %s' % str(e))
+            _LOGGER.error('Failed to read metadata for %d - %s' % (i, str(e)))
             pass
         return None
 
@@ -89,15 +88,8 @@ class MetadataDb(object):
                 # Remove entries...
                 for path in non_existant_files:
                     self.cursor.execute('DELETE from tracks where file=?', (path, ))
-
-                # Calculate new ID values...
-                self.cursor.execute('SELECT id, file FROM tracks ORDER BY id ASC')
-                rows = self.cursor.fetchall()
-                row_id = 1
-                for row in rows:
-                    if row[0]!=row_id:
-                        self.cursor.execute('UPDATE tracks SET id=? WHERE file=?', (row_id, row[1]))
-                    row_id +=1
+                self.cursor.execute('VACUUM');
+                self.commit()
                 return True
         except Exception as e:
             _LOGGER.error('Failed to remove old tracks - %s' % str(e))
