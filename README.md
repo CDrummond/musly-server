@@ -49,7 +49,7 @@ The API server can be installed as a Systemd service, or started manually:
 ./musly-server.py
 ```
 
-...when the service starts, it will confirm that the number of traks in its
+...when the service starts, it will confirm that the number of tracks in its
 SQLite database is the same as the number in the 'Musly jukebox'. If the
 number differs, the jukebox is recreated.
 
@@ -72,8 +72,9 @@ genres will be excluded - unless it is December.
 `min` and `max` can be used to set the minimum, and maximum, duration (in
 seconds) of tracks to be considered.
 
-`ignore` may be used to list tracks to ignore (e.g. tracks that are already in
-the queue). This parameter, like `track`, may be repeated multiple times.
+`previous` may be used to list tracks currently in the play queue. This
+parameter, like `track`, may be repeated multiple times. These tracks will be
+used to filter chosen tracks on artist, or album, to prevent duplicates.
 
 `excludeartist` may be used to list artists to ignore. This parameter, like
 `track`, may be repeated multiple times.
@@ -92,10 +93,11 @@ shuffled, and then the desired `count` tracks taken from this shuffled list.
 The API will try query Musly for 25 times the specified `count` tracks (default
 of 5) for each supplied seed track. (This is to allow for filtering on genre,
 etc). Initally the API will ignore musly tracks from the same artist or album of
-the seed tracks (and any previous in the list, and the last 15 `ignore` tracks).
-If, because of this filtering, there are less than the requested amount then the
-highest similarty tracks from the filtered-out lists are chosen. Finally all
-tracks are sorted by similarity, with the most similar first.
+the seed tracks (and any previous in the list, any albums from the 25
+`previous` tracks, or albums from the last 15 `previous` tracks). If, because of
+this filtering, there are less than the requested amount then the highest
+similarity tracks from the filtered-out lists are chosen. Finally all tracks are
+sorted by similarity, with the most similar first.
 
 Metadata for tracks is stored in an SQLite database, this has an `ignore` column
 which if set to `1` will cause the API to not use this track if it is returned
