@@ -6,6 +6,8 @@
 4. Fix reading, and usage, of 'ingore' DB column.
 5. Remove 'id' column, and use rowid instead.
 6. Vacumm DB after removing tracks to reset rowids.
+7. Pass previous tracks to server and have server use this for filtering.
+8. Optionally (true by default) shuffle tracks.
 
 0.0.1
 -----

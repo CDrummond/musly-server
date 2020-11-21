@@ -10,6 +10,7 @@ from datetime import datetime
 import json
 import logging
 import os
+import random
 import sqlite3
 import urllib
 from flask import Flask, abort, request
@@ -20,8 +21,8 @@ _LOGGER = logging.getLogger(__name__)
 DEFAULT_TRACKS_TO_RETURN      = 5  # Number of tracks to return, if none specified
 MIN_TRACKS_TO_RETURN          = 5  # Min value for 'count' parameter
 MAX_TRACKS_TO_RETURN          = 50 # Max value for 'count' parameter
-MAX_IGNORE_TRACKS_FILTER_META = 15 # How many of tracks in 'ignore' list should we also filter on metadata (artist and/or album)?
-                                   # Rest of tracks from 'ingore' will be ignore by album (i.e artist+album) only
+NUM_PREV_TRACKS_FILTER_ARTIST = 15 # Try to ensure artist is not in previous N tracks
+NUM_PREV_TRACKS_FILTER_ALBUM  = 25 # Try to ensure album is not in previous N tracks
 NUM_SIMILAR_TRACKS_FACTOR     = 25 # Request count*NUM_SIMILAR_TRACKS_FACTOR from musly
 
 class MuslyApp(Flask):
@@ -101,7 +102,7 @@ def similar_api():
         count = MAX_TRACKS_TO_RETURN
 
     match_genre = get_value(params, 'filtergenre', '0', isPost)=='1'
-    min_similarity = int(get_value(params, 'minsim', 5, isPost))/100.0
+    shuffle = get_value(params, 'shuffle', '1', isPost)=='1'
     max_similarity = int(get_value(params, 'maxsim', 75, isPost))/100.0
     min_duration = int(get_value(params, 'min', 0, isPost))
     max_duration = int(get_value(params, 'max', 0, isPost))
@@ -122,7 +123,7 @@ def similar_api():
     # Similar tracks ignored because of artist/album
     filtered_by_seeds_tracks=[]
     filtered_by_current_tracks=[]
-    filtered_by_ignore_tracks=[]
+    filtered_by_previous_tracks=[]
     
     # Artist/album of seed tracks
     seed_metadata=[]
@@ -150,7 +151,7 @@ def similar_api():
             pass
         if track_id is not None and track_id>=0:
             track_ids.append(track_id)
-            meta = meta_db.get_metadata(track_id+1) # IDs in SQLite are 1.. musly is 0..
+            meta = meta_db.get_metadata(track_id+1) # IDs (rowid) in SQLite are 1.. musly is 0..
             _LOGGER.debug('Seed %d metadata:%s' % (track_id, json.dumps(meta)))
             if meta is not None:
                 seed_metadata.append(meta)
@@ -165,11 +166,10 @@ def similar_api():
         else:
             _LOGGER.debug('Could not locate %s in DB' % track)
 
-    ignore_track_ids = []
-    ignore_metadata = [] # Ignore tracks with same meta-data, i.e. artist
-    ignore_album_metadata = [] # Ignore tracks from same album
-    if 'ignore' in params:
-        for trk in params['ignore']:
+    previous_track_ids = []
+    previous_metadata = [] # Ignore tracks with same meta-data, i.e. artist
+    if 'previous' in params:
+        for trk in params['previous']:
             track = decode(trk, root)
             _LOGGER.debug('I TRACK %s -> %s' % (trk, track))
 
@@ -180,16 +180,14 @@ def similar_api():
             except:
                 pass
             if track_id is not None and track_id>=0:
-                ignore_track_ids.append(track_id)
-                meta = meta_db.get_metadata(track_id+1) # IDs in SQLite are 1.. musly is 0..
-                if meta:
-                    ignore_metadata.append(meta)
+                previous_track_ids.append(track_id)
+                if len(previous_metadata)<NUM_PREV_TRACKS_FILTER_ALBUM:
+                    meta = meta_db.get_metadata(track_id+1) # IDs (rowid) in SQLite are 1.. musly is 0..
+                    if meta:
+                        previous_metadata.append(meta)
             else:
                 _LOGGER.debug('Could not locate %s in DB' % track)
-        if len(ignore_metadata) > MAX_IGNORE_TRACKS_FILTER_META:
-            ignore_album_metadata=ignore_metadata[:-MAX_IGNORE_TRACKS_FILTER_META]
-            ignore_metadata=ignore_metadata[-MAX_IGNORE_TRACKS_FILTER_META:]
-        _LOGGER.debug('Have %d tracks to ignore %s %s' % (len(ignore_track_ids), ignore_track_ids, json.dumps(ignore_metadata)))
+        _LOGGER.debug('Have %d previous tracks' % len(previous_track_ids))
 
     exclude_artists = []
     do_exclude_artists = False
@@ -211,16 +209,17 @@ def similar_api():
     if match_genre:
         _LOGGER.debug('Seed genres: %s' % seed_genres)
 
+    similarity_count = int(count * 2.5) if shuffle else count
     for track_id in track_ids:
         # Query musly for similar tracks
-        _LOGGER.debug('Query musly for %d similar tracks to index: %d' % ((count*NUM_SIMILAR_TRACKS_FACTOR)+1, track_id))
+        _LOGGER.debug('Query musly for %d similar tracks to index: %d' % ((similarity_count*NUM_SIMILAR_TRACKS_FACTOR)+1, track_id))
         ( resp_ids, resp_similarity ) = mus.get_similars( mta.mtracks, mta.mtrackids, track_id, (count*NUM_SIMILAR_TRACKS_FACTOR)+1 )
         accepted_tracks = 0
         for i in range(1, len(resp_ids)): # Ignore 1st track, as its the seed
-            if (not resp_ids[i] in track_ids) and (not resp_ids[i] in ignore_track_ids) and (not resp_ids[i] in similar_track_ids) and (resp_similarity[i]>=min_similarity) and (resp_similarity[i]<=max_similarity):
+            if (not resp_ids[i] in track_ids) and (not resp_ids[i] in previous_track_ids) and (not resp_ids[i] in similar_track_ids) and (resp_similarity[i]>0.0) and (resp_similarity[i]<=max_similarity):
                 similar_track_ids.append(resp_ids[i])
 
-                meta = meta_db.get_metadata(resp_ids[i]+1) # IDs in SQLite are 1.. musly is 0..
+                meta = meta_db.get_metadata(resp_ids[i]+1) # IDs (rowid) in SQLite are 1.. musly is 0..
                 if not meta:
                     _LOGGER.debug('DISCARD(not found) ID:%d Path:%s Similarity:%f' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i]))
                 elif 'ignore' in meta and meta['ignore']:
@@ -242,12 +241,12 @@ def similar_api():
                     elif filters.same_artist_or_album(current_metadata, meta):
                         _LOGGER.debug('FILTERED(current) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                         filtered_by_current_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
-                    elif filters.same_artist_or_album(ignore_metadata, meta):
-                        _LOGGER.debug('FILTERED(ignore) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
-                        filtered_by_ignore_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
-                    elif filters.same_artist_or_album(ignore_album_metadata, meta, True):
-                        _LOGGER.debug('FILTERED(ignore(album)) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
-                        filtered_by_ignore_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
+                    elif filters.same_artist_or_album(previous_metadata, meta, False, NUM_PREV_TRACKS_FILTER_ARTIST):
+                        _LOGGER.debug('FILTERED(previous(artist)) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
+                        filtered_by_previous_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
+                    elif filters.same_artist_or_album(previous_metadata, meta, True, NUM_PREV_TRACKS_FILTER_ALBUM):
+                        _LOGGER.debug('FILTERED(previous(album)) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
+                        filtered_by_previous_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
                     else:
                         key = '%s::%s::%s' % (meta['artist'], meta['album'], meta['albumartist'] if 'albumartist' in meta and meta['albumartist'] is not None else '')
                         if not key in current_metadata_keys:
@@ -256,28 +255,33 @@ def similar_api():
                         _LOGGER.debug('USABLE ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                         similar_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
                         accepted_tracks += 1
-                        if accepted_tracks>=count:
+                        if accepted_tracks>=similarity_count:
                             break
 
     # Too few tracks? Add some from the filtered lists
-    if len(similar_tracks)<count and len(filtered_by_ignore_tracks)>0:
-        _LOGGER.debug('Add some tracks from filtered_by_ignore_tracks, %d/%d' % (len(similar_tracks), len(filtered_by_ignore_tracks)))
-        filtered_by_ignore_tracks = sorted(filtered_by_ignore_tracks, key=lambda k: k['similarity'])
-        similar_tracks = similar_tracks + filtered_by_ignore_tracks[:count-len(similar_tracks)]
-    if len(similar_tracks)<count and len(filtered_by_current_tracks)>0:
+    if len(similar_tracks)<similarity_count and len(filtered_by_previous_tracks)>0:
+        _LOGGER.debug('Add some tracks from filtered_by_previous_tracks, %d/%d' % (len(similar_tracks), len(filtered_by_previous_tracks)))
+        filtered_by_previous_tracks = sorted(filtered_by_previous_tracks, key=lambda k: k['similarity'])
+        similar_tracks = similar_tracks + filtered_by_previous_tracks[:similarity_count-len(similar_tracks)]
+    if len(similar_tracks)<similarity_count and len(filtered_by_current_tracks)>0:
         _LOGGER.debug('Add some tracks from filtered_by_current_tracks, %d/%d' % (len(similar_tracks), len(filtered_by_current_tracks)))
         filtered_by_seeds_tracks = sorted(filtered_by_current_tracks, key=lambda k: k['similarity'])
-        similar_tracks = similar_tracks + filtered_by_current_tracks[:count-len(similar_tracks)]
-    if len(similar_tracks)<count and len(filtered_by_seeds_tracks)>0:
+        similar_tracks = similar_tracks + filtered_by_current_tracks[:similarity_count-len(similar_tracks)]
+    if len(similar_tracks)<similarity_count and len(filtered_by_seeds_tracks)>0:
         _LOGGER.debug('Add some tracks from filtered_by_seeds_tracks, %d/%d' % (len(similar_tracks), len(filtered_by_seeds_tracks)))
         filtered_by_seeds_tracks = sorted(filtered_by_seeds_tracks, key=lambda k: k['similarity'])
-        similar_tracks = similar_tracks + filtered_by_seeds_tracks[:count-len(similar_tracks)]
+        similar_tracks = similar_tracks + filtered_by_seeds_tracks[:similarity_count-len(similar_tracks)]
 
     # Sort by similarity
     similar_tracks = sorted(similar_tracks, key=lambda k: k['similarity'])
     
-    # Take top 'count' tracks
-    similar_tracks = similar_tracks[:count]
+    # Take top 'similarity_count' tracks
+    similar_tracks = similar_tracks[:similarity_count]
+
+    if shuffle:
+        random.shuffle(similar_tracks)
+        similar_tracks = similar_tracks[:count]
+
     track_list = []
     for track in similar_tracks:
         path = '%s%s' % (root, track['path'])

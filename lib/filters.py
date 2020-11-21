@@ -8,12 +8,16 @@
 VARIOUS_ARTISTS = ['Various', 'Various Artists']
 CHRISTMAS_GENRES = ['Christmas', 'Xmas']
 
-def same_artist_or_album(seeds, track, check_album_only=False):
+def same_artist_or_album(seeds, track, check_album_only=False, max_check=1000):
+    check = 0
     for seed in seeds:
         if seed['artist']==track['artist'] and not check_album_only:
             return True
         if seed['album']==track['album'] and 'albumartist' in seed and 'albumartist' in track and seed['albumartist']==track['albumartist'] and track['albumartist'] not in VARIOUS_ARTISTS:
             return True
+        check+=1
+        if check>=max_check:
+            return False
     return False
 
 
