@@ -79,6 +79,63 @@ def decode(url, root):
     return cue.convert_from_cue_path(u)
 
 
+@musly_app.route('/api/dump', methods=['GET', 'POST'])
+def dump_api():
+    isPost = False
+    if request.method=='GET':
+        params = request.args.to_dict(flat=False)
+    else:
+        isPost = True
+        params = request.get_json()
+        _LOGGER.debug('Request: %s' % json.dumps(params))
+
+    if not params:
+        abort(400)
+
+    if not 'track' in params:
+        abort(400)
+
+    if len(params['track'])!=1:
+        abort(400)
+
+    mta = musly_app.get_mta()
+    mus = musly_app.get_musly()
+    cfg = musly_app.get_config()
+    meta_db = metadata_db.MetadataDb(cfg)
+
+    # Strip LMS root path from track path
+    root = cfg['paths']['lms']
+
+    track = decode(params['track'][0], root)
+    _LOGGER.debug('S TRACK %s -> %s' % (params['track'][0], track))
+
+    # Check that musly knows about this track
+    track_id = -1
+    try:
+        track_id = mta.paths.index( track )
+        if track_id<0:
+            abort(404)
+        txt = get_value(params, 'format', '', False)=='text'
+        ( resp_ids, resp_similarity ) = mus.get_similars( mta.mtracks, mta.mtrackids, track_id, 65535 )
+        resp=[]
+        prev_id=-1
+        count = int(get_value(params, 'count', 50000, isPost))
+        for i in range(1, min(count, len(resp_ids))): # Ignore 1st track, as its the seed
+            if resp_ids[i]==prev_id:
+                break
+            prev_id=resp_ids[i]
+            if txt:
+                resp.append("%s\t%f" % (mta.paths[resp_ids[i]], resp_similarity[i]))
+            else:
+                resp.append({'file':mta.paths[resp_ids[i]], 'sim':resp_similarity[i]})
+        if txt:
+            return '\n'.join(resp)
+        else:
+            return json.dumps(resp)
+    except:
+         abort(404)
+
+
 @musly_app.route('/api/similar', methods=['GET', 'POST'])
 def similar_api():
     isPost = False
