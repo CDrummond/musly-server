@@ -267,6 +267,9 @@ def similar_api():
         _LOGGER.debug('Seed genres: %s' % seed_genres)
 
     similarity_count = int(count * 2.5) if shuffle else count
+    # If only 1 seed track, get more tracks to shuffle to increase randomness
+    similarity_count = similarity_count * 2 if shuffle and 1==len(seed_track_db_entries) else similarity_count
+
     for track_id in track_ids:
         # Query musly for similar tracks
         _LOGGER.debug('Query musly for %d similar tracks to index: %d' % ((similarity_count*NUM_SIMILAR_TRACKS_FACTOR)+1, track_id))
