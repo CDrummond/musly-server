@@ -270,6 +270,7 @@ def similar_api():
     # If only 1 seed track, get more tracks to shuffle to increase randomness
     similarity_count = similarity_count * 2 if shuffle and 1==len(seed_track_db_entries) else similarity_count
 
+    matched_artists={}
     for track_id in track_ids:
         # Query musly for similar tracks
         _LOGGER.debug('Query musly for %d similar tracks to index: %d' % ((similarity_count*NUM_SIMILAR_TRACKS_FACTOR)+1, track_id))
@@ -301,6 +302,8 @@ def similar_api():
                     elif filters.same_artist_or_album(current_metadata, meta):
                         _LOGGER.debug('FILTERED(current) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                         filtered_by_current_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
+                        if meta['artist'] in matched_artists and resp_similarity[i] - matched_artists[meta['artist']]['similarity'] <= 0.25:
+                            matched_artists[meta['artist']]['tracks'].append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
                     elif filters.same_artist_or_album(previous_metadata, meta, False, NUM_PREV_TRACKS_FILTER_ARTIST):
                         _LOGGER.debug('FILTERED(previous(artist)) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                         filtered_by_previous_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
@@ -314,9 +317,17 @@ def similar_api():
                             current_metadata.append(meta)
                         _LOGGER.debug('USABLE ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                         similar_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
+                        # Keep list of all tracks of an artist, so that we can randomly select one => we don't always use the same one
+                        matched_artists[meta['artist']]={'similarity':resp_similarity[i], 'tracks':[{'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]}], 'pos':len(similar_tracks)-1}
                         accepted_tracks += 1
                         if accepted_tracks>=similarity_count:
                             break
+
+    # For each matched_artists randonly select a track...
+    for matched in matched_artists:
+        if len(matched_artists[matched]['tracks'])>1:
+            _LOGGER.debug('Choosing random track for %s (%d tracks)' % (matched, len(matched_artists[matched]['tracks'])))
+            similar_tracks[matched_artists[matched]['pos']] = random.choice(matched_artists[matched]['tracks'])
 
     # Too few tracks? Add some from the filtered lists
     min_count = 2
