@@ -302,7 +302,7 @@ def similar_api():
                     elif filters.same_artist_or_album(current_metadata, meta):
                         _LOGGER.debug('FILTERED(current) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                         filtered_by_current_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
-                        if meta['artist'] in matched_artists and resp_similarity[i] - matched_artists[meta['artist']]['similarity'] <= 0.25:
+                        if meta['artist'] in matched_artists and resp_similarity[i] - matched_artists[meta['artist']]['similarity'] <= 0.2:
                             matched_artists[meta['artist']]['tracks'].append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
                     elif filters.same_artist_or_album(previous_metadata, meta, False, NUM_PREV_TRACKS_FILTER_ARTIST):
                         _LOGGER.debug('FILTERED(previous(artist)) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
