@@ -158,6 +158,7 @@ This has the following format:
   ["Dance", "Disco", "Hip-Hop", "Pop", "Pop/Folk", "Pop/Rock", "R&B", "Reggae", "Soul", "Trance"],
   ["Gothic Metal", "Heavy Metal", "Power Metal", "Progressive Metal", "Progressive Rock", "Symphonic Metal", "Symphonic Power Metal"]
  ],
+ "ignoregenre":["Artist"],
  "port":10000,
  "host":"0.0.0.0",
  "threads":8,
@@ -186,6 +187,7 @@ track, etc. This config item should hole the path to the LMS database file. This
 is only required for analysis, and only if you have CUE files. `ffmpeg` is
 required to split tracks.
 * `genres` This is as described above.
+* `ignoregenre` List of artists where genre filtering (excluding christmas) should be ignored.
 * `port` This is the port number the API is accessible on.
 * `host` IP addres on which the API will listen on. Use `0.0.0.0` to listen on
 all interfaces on your network.
