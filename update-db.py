@@ -96,7 +96,7 @@ def normalize(conn, cursor):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Update Musly DB (v%s)' % version.MUSLY_SERVER_VERSION)
-    parser.add_argument('-d', '--db', type=str, help='Database file', default='essentia.db')
+    parser.add_argument('-d', '--db', type=str, help='Database file', default='musly.db')
     parser.add_argument('-i', '--ignore', type=str, help='Path to file containing items to ignore', default=None)
     parser.add_argument('-n', '--normalize', dest='normalize', action='store_true', help='Normalize artist, albumartist, and album', default=False)
     args = parser.parse_args()
