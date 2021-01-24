@@ -88,8 +88,8 @@ class MetadataDb(object):
                 # Remove entries...
                 for path in non_existant_files:
                     self.cursor.execute('DELETE from tracks where file=?', (path, ))
-                self.cursor.execute('VACUUM');
                 self.commit()
+                self.cursor.execute('VACUUM');
                 return True
         except Exception as e:
             _LOGGER.error('Failed to remove old tracks - %s' % str(e))
