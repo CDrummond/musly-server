@@ -79,6 +79,21 @@ def decode(url, root):
     return cue.convert_from_cue_path(u)
 
 
+def genre_adjust(seed, entry, seed_genres, all_genres):
+    if 'genres' not in seed:
+        return 0.0
+    if 'genres' not in entry:
+        return 0.0
+    if seed['genres'][0]==entry['genres'][0]:
+        # Exact genre match
+        return 0.1
+    if (seed_genres is not None and entry['genres'][0] not in seed_genres) or \
+       (seed_genres is None and all_genres is not None and entry['genres'][0] in all_genres):
+        return 0.0
+    # Genre in group
+    return 0.05
+
+
 @musly_app.route('/api/dump', methods=['GET', 'POST'])
 def dump_api():
     isPost = False
@@ -185,6 +200,7 @@ def similar_api():
     # Artist/album of seed tracks
     seed_metadata=[]
     seed_genres=[]
+    all_genres = cfg['all_genres'] if 'all_genres' in cfg else None
     
     # Artist/album of chosen tracks
     current_metadata_keys={}
@@ -268,7 +284,7 @@ def similar_api():
 
     similarity_count = int(count * 2.5) if shuffle else count
     # If only 1 seed track, get more tracks to shuffle to increase randomness
-    similarity_count = similarity_count * 2 if shuffle and 1==len(seed_track_db_entries) else similarity_count
+    similarity_count = similarity_count * 2 if shuffle and 1==len(track_ids) else similarity_count
 
     matched_artists={}
     for track_id in track_ids:
@@ -315,10 +331,12 @@ def similar_api():
                         if not key in current_metadata_keys:
                             current_metadata_keys[key]=1
                             current_metadata.append(meta)
-                        _LOGGER.debug('USABLE ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
-                        similar_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
+                        sim = max(resp_similarity[i] - genre_adjust(seed_metadata, meta, seed_genres, all_genres), 0.000000001)
+
+                        _LOGGER.debug('USABLE ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], sim, json.dumps(meta)))
+                        similar_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':sim})
                         # Keep list of all tracks of an artist, so that we can randomly select one => we don't always use the same one
-                        matched_artists[meta['artist']]={'similarity':resp_similarity[i], 'tracks':[{'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]}], 'pos':len(similar_tracks)-1}
+                        matched_artists[meta['artist']]={'similarity':resp_similarity[i], 'tracks':[{'path':mta.paths[resp_ids[i]], 'similarity':sim}], 'pos':len(similar_tracks)-1}
                         accepted_tracks += 1
                         if accepted_tracks>=similarity_count:
                             break
