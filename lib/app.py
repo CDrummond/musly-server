@@ -292,7 +292,7 @@ def similar_api():
 
     matched_artists={}
     for track_id in track_ids:
-        match_all_genres = ('ignoregenre' in config) and (''+track_id in track_id_seed_metadata) and (track_id_seed_metadata[''+track_id]['artist'] in config['ignoregenre'])
+        match_all_genres = ('ignoregenre' in config) and (('*'==config['ignoregenre']) or ((''+track_id in track_id_seed_metadata) and (track_id_seed_metadata[''+track_id]['artist'] in config['ignoregenre'])))
 
         # Query musly for similar tracks
         _LOGGER.debug('Query musly for %d similar tracks to index: %d' % ((similarity_count*NUM_SIMILAR_TRACKS_FACTOR)+1, track_id))
