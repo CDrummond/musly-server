@@ -79,17 +79,19 @@ def decode(url, root):
     return cue.convert_from_cue_path(u)
 
 
-def genre_adjust(seed, entry, seed_genres, all_genres):
+def genre_adjust(seed, entry, seed_genres, all_genres, match_all_genres):
+    if match_all_genres:
+        return 0.0
     if 'genres' not in seed:
-        return 0.0
+        return 0.2
     if 'genres' not in entry:
-        return 0.0
+        return 0.2
     if seed['genres'][0]==entry['genres'][0]:
         # Exact genre match
-        return 0.1
+        return 0.0
     if (seed_genres is not None and entry['genres'][0] not in seed_genres) or \
        (seed_genres is None and all_genres is not None and entry['genres'][0] in all_genres):
-        return 0.0
+        return 0.1
     # Genre in group
     return 0.05
 
@@ -199,6 +201,7 @@ def similar_api():
     
     # Artist/album of seed tracks
     seed_metadata=[]
+    track_id_seed_metadata={}
     seed_genres=[]
     all_genres = cfg['all_genres'] if 'all_genres' in cfg else None
     
@@ -228,6 +231,7 @@ def similar_api():
             _LOGGER.debug('Seed %d metadata:%s' % (track_id, json.dumps(meta)))
             if meta is not None:
                 seed_metadata.append(meta)
+                track_id_seed_metadata[''+track_id]=meta
                 # Get genres for this seed track - this takes its genres and gets any matching genres from config
                 if 'genres' in meta and 'genres' in cfg:
                     for genre in meta['genres']:
@@ -288,6 +292,8 @@ def similar_api():
 
     matched_artists={}
     for track_id in track_ids:
+        match_all_genres = ('ignoregenre' in config) and (''+track_id in track_id_seed_metadata) and (track_id_seed_metadata[''+track_id]['artist'] in config['ignoregenre'])
+
         # Query musly for similar tracks
         _LOGGER.debug('Query musly for %d similar tracks to index: %d' % ((similarity_count*NUM_SIMILAR_TRACKS_FACTOR)+1, track_id))
         ( resp_ids, resp_similarity ) = mus.get_similars( mta.mtracks, mta.mtrackids, track_id, (count*NUM_SIMILAR_TRACKS_FACTOR)+1 )
@@ -331,7 +337,7 @@ def similar_api():
                         if not key in current_metadata_keys:
                             current_metadata_keys[key]=1
                             current_metadata.append(meta)
-                        sim = max(resp_similarity[i] - genre_adjust(seed_metadata, meta, seed_genres, all_genres), 0.000000001)
+                        sim = resp_similarity[i] + genre_adjust(seed_metadata, meta, seed_genres, all_genres, match_all_genres)
 
                         _LOGGER.debug('USABLE ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], sim, json.dumps(meta)))
                         similar_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':sim})
