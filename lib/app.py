@@ -198,7 +198,8 @@ def similar_api():
     filtered_by_seeds_tracks=[]
     filtered_by_current_tracks=[]
     filtered_by_previous_tracks=[]
-    
+    current_titles=[]
+
     # Artist/album of seed tracks
     seed_metadata=[]
     track_id_seed_metadata={}
@@ -240,6 +241,8 @@ def similar_api():
                                 for cg in group:
                                     if not cg in seed_genres:
                                         seed_genres.append(cg)
+                if 'title' in meta:
+                    current_titles.append(meta['title'])
         else:
             _LOGGER.debug('Could not locate %s in DB' % track)
 
@@ -262,6 +265,8 @@ def similar_api():
                     meta = meta_db.get_metadata(track_id+1) # IDs (rowid) in SQLite are 1.. musly is 0..
                     if meta:
                         previous_metadata.append(meta)
+                        if 'title' in meta:
+                            current_titles.append(meta['title'])
             else:
                 _LOGGER.debug('Could not locate %s in DB' % track)
         _LOGGER.debug('Have %d previous tracks' % len(previous_track_ids))
@@ -305,7 +310,7 @@ def similar_api():
                 meta = meta_db.get_metadata(resp_ids[i]+1) # IDs (rowid) in SQLite are 1.. musly is 0..
                 if not meta:
                     _LOGGER.debug('DISCARD(not found) ID:%d Path:%s Similarity:%f' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i]))
-                elif 'ignore' in meta and meta['ignore']:
+                elif meta['ignore']:
                     _LOGGER.debug('DISCARD(ignore) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                 elif (min_duration>0 or max_duration>0) and not filters.check_duration(min_duration, max_duration, meta):
                     _LOGGER.debug('DISCARD(duration) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
@@ -331,6 +336,8 @@ def similar_api():
                         filtered_by_previous_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
                     elif filters.same_artist_or_album(previous_metadata, meta, True, NUM_PREV_TRACKS_FILTER_ALBUM):
                         _LOGGER.debug('FILTERED(previous(album)) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
+                    elif filters.match_title(current_titles, meta):
+                        _LOGGER.debug('FILTERED(title) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                         filtered_by_previous_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
                     else:
                         key = '%s::%s::%s' % (meta['artist'], meta['album'], meta['albumartist'] if 'albumartist' in meta and meta['albumartist'] is not None else '')
@@ -343,6 +350,8 @@ def similar_api():
                         similar_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':sim})
                         # Keep list of all tracks of an artist, so that we can randomly select one => we don't always use the same one
                         matched_artists[meta['artist']]={'similarity':resp_similarity[i], 'tracks':[{'path':mta.paths[resp_ids[i]], 'similarity':sim}], 'pos':len(similar_tracks)-1}
+                        if 'title' in meta:
+                            current_titles.append(meta['title'])
                         accepted_tracks += 1
                         if accepted_tracks>=similarity_count:
                             break

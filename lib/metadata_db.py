@@ -14,6 +14,8 @@ from . import cue, tags
 DB_FILE = 'musly.db'
 GENRE_SEPARATOR = ';'
 _LOGGER = logging.getLogger(__name__)
+ALBUM_REMOVALS = ['anniversary edition', 'deluxe edition', 'expanded edition', 'extended edition', 'special edition', 'deluxe', 'deluxe version', 'extended deluxe', 'super deluxe', 're-issue', 'remastered', 'mixed', 'remixed and remastered']
+TITLE_REMOVALS = ['demo', 'demo version', 'radio edit', 'remastered', 'session version', 'live', 'live acoustic', 'acoustic', 'industrial remix', 'alternative version', 'alternate version', 'original mix', 'bonus track', 're-recording', 'alternate']
 
 
 def normalize_str(s):
@@ -28,25 +30,25 @@ def normalize_str(s):
 def normalize_album(album):
     if not album:
         return album
-    return normalize_str(album.lower().replace(' (anniversary edition)', '') \
-                                      .replace(' (deluxe edition)', '') \
-                                      .replace(' (expanded edition)', '') \
-                                      .replace(' (extended edition)', '') \
-                                      .replace(' (special edition)', '') \
-                                      .replace(' (deluxe)', '') \
-                                      .replace(' (deluxe version)', '') \
-                                      .replace(' (extended deluxe)', '') \
-                                      .replace(' (super deluxe)', '') \
-                                      .replace(' (re-issue)', '') \
-                                      .replace(' (remastered)', '') \
-                                      .replace(' (remixed)', '') \
-                                      .replace(' (remixed and remastered)', ''))
+    s = album.lower()
+    for r in ALBUM_REMOVALS:
+        s=s.replace(' (%s)' % r, '')
+    return normalize_str(s)
 
 
 def normalize_artist(artist):
     if not artist:
         return artist
     return normalize_str(artist.lower()).replace(' feat ', ' ').replace(' ft ', ' ').replace(' featuring ', ' ')
+
+
+def normalize_title(title):
+    if not title:
+        return title
+    s = title.lower()
+    for r in TITLE_REMOVALS:
+        s=s.replace(' (%s)' % r, '')
+    return normalize_str(s)
 
 
 class MetadataDb(object):
@@ -56,6 +58,7 @@ class MetadataDb(object):
         self.cursor = self.conn.cursor()
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS tracks (
                     file varchar UNIQUE NOT NULL,
+                    title varchar,
                     artist varchar,
                     album varchar,
                     albumartist varchar,
@@ -64,6 +67,11 @@ class MetadataDb(object):
                     ignore integer,
                     vals blob NOT NULL)''')
         self.cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS tracks_idx ON tracks(file)')
+        # Add 'title' column - will fail if already exists (which it should, but older instances might not have it)
+        try:
+            self.cursor.execute('ALTER TABLE tracks ADD COLUMN title varchar default null')
+        except:
+            pass
 
 
     def commit(self):
@@ -77,13 +85,12 @@ class MetadataDb(object):
 
     def get_metadata(self, i):
         try:
-            self.cursor.execute('SELECT artist, album, albumartist, genre, duration, ignore FROM tracks WHERE rowid=?', (i,))
+            self.cursor.execute('SELECT title, artist, album, albumartist, genre, duration, ignore FROM tracks WHERE rowid=?', (i,))
             row = self.cursor.fetchone()
-            meta = {'artist':normalize_artist(row[0]), 'album':normalize_album(row[1]), 'albumartist':normalize_artist(row[2]), 'duration':row[4]}
-            if row[3] and len(row[3])>0:
-                meta['genres']=row[3].split(GENRE_SEPARATOR)
-            if row[5] is not None and row[5]==1:
-                meta['ignore']=True
+            meta = {'title':normalize_title(row[0]), 'artist':normalize_artist(row[1]), 'album':normalize_album(row[2]), 'albumartist':normalize_artist(row[3]), 'duration':row[5]}
+            if row[4] and len(row[4])>0:
+                meta['genres']=row[4].split(GENRE_SEPARATOR)
+            meta['ignore']=row[6] is not None and row[6]==1
             return meta
         except Exception as e:
             _LOGGER.error('Failed to read metadata for %d - %s' % (i, str(e)))
@@ -96,14 +103,14 @@ class MetadataDb(object):
         if meta is not None:
             if not 'albumartist' in meta or meta['albumartist'] is None:
                 if not 'genres' in meta or meta['genres'] is None:
-                    self.cursor.execute('UPDATE tracks SET artist=?, album=?, duration=? WHERE file=?', (meta['artist'], meta['album'], meta['duration'], track['db']))
+                    self.cursor.execute('UPDATE tracks SET title=?, artist=?, album=?, duration=? WHERE file=?', (meta['title'], meta['artist'], meta['album'], meta['duration'], track['db']))
                 else:
-                    self.cursor.execute('UPDATE tracks SET artist=?, album=?, genre=?, duration=? WHERE file=?', (meta['artist'], meta['album'], GENRE_SEPARATOR.join(meta['genres']), meta['duration'], track['db']))
+                    self.cursor.execute('UPDATE tracks SET title=?, artist=?, album=?, genre=?, duration=? WHERE file=?', (meta['title'], meta['artist'], meta['album'], GENRE_SEPARATOR.join(meta['genres']), meta['duration'], track['db']))
             else:
                 if not 'genres' in meta or meta['genres'] is None:
-                    self.cursor.execute('UPDATE tracks SET artist=?, album=?, albumartist=?, duration=? WHERE file=?', (meta['artist'], meta['album'], meta['albumartist'], meta['duration'], track['db']))
+                    self.cursor.execute('UPDATE tracks SET title=?, artist=?, album=?, albumartist=?, duration=? WHERE file=?', (meta['title'], meta['artist'], meta['album'], meta['albumartist'], meta['duration'], track['db']))
                 else:
-                    self.cursor.execute('UPDATE tracks SET artist=?, album=?, albumartist=?, genre=?, duration=? WHERE file=?', (meta['artist'], meta['album'], meta['albumartist'], GENRE_SEPARATOR.join(meta['genres']), meta['duration'], track['db']))
+                    self.cursor.execute('UPDATE tracks SET title=?, artist=?, album=?, albumartist=?, genre=?, duration=? WHERE file=?', (meta['title'], meta['artist'], meta['album'], meta['albumartist'], GENRE_SEPARATOR.join(meta['genres']), meta['duration'], track['db']))
 
 
     def remove_old_tracks(self, source_path):
