@@ -15,6 +15,40 @@ DB_FILE = 'musly.db'
 GENRE_SEPARATOR = ';'
 _LOGGER = logging.getLogger(__name__)
 
+
+def normalize_str(s):
+    if not s:
+        return s
+    s=s.replace('.', '').replace('(', '').replace(')', '').replace('[', '').replace(']', '').replace(' & ', ' and ')
+    while '  ' in s:
+        s=s.replace('  ', ' ')
+    return s
+
+
+def normalize_album(album):
+    if not album:
+        return album
+    return normalize_str(album.lower().replace(' (anniversary edition)', '') \
+                                      .replace(' (deluxe edition)', '') \
+                                      .replace(' (expanded edition)', '') \
+                                      .replace(' (extended edition)', '') \
+                                      .replace(' (special edition)', '') \
+                                      .replace(' (deluxe)', '') \
+                                      .replace(' (deluxe version)', '') \
+                                      .replace(' (extended deluxe)', '') \
+                                      .replace(' (super deluxe)', '') \
+                                      .replace(' (re-issue)', '') \
+                                      .replace(' (remastered)', '') \
+                                      .replace(' (remixed)', '') \
+                                      .replace(' (remixed and remastered)', ''))
+
+
+def normalize_artist(artist):
+    if not artist:
+        return artist
+    return normalize_str(artist.lower()).replace(' feat ', ' ').replace(' ft ', ' ').replace(' featuring ', ' ')
+
+
 class MetadataDb(object):
     def __init__(self, config):
         path = os.path.join(config['paths']['db'], DB_FILE)
@@ -45,7 +79,7 @@ class MetadataDb(object):
         try:
             self.cursor.execute('SELECT artist, album, albumartist, genre, duration, ignore FROM tracks WHERE rowid=?', (i,))
             row = self.cursor.fetchone()
-            meta = {'artist':row[0], 'album':row[1], 'albumartist':row[2], 'duration':row[4]}
+            meta = {'artist':normalize_artist(row[0]), 'album':normalize_album(row[1]), 'albumartist':normalize_artist(row[2]), 'duration':row[4]}
             if row[3] and len(row[3])>0:
                 meta['genres']=row[3].split(GENRE_SEPARATOR)
             if row[5] is not None and row[5]==1:
