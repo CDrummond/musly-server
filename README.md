@@ -105,7 +105,7 @@ as a similar track by musly. In this way you can exclude specific tracks from
 being added to mixes - but if they are already in the queue, then they can sill
 be used as seed tracks.
 
-This API is intended to be used by [LMS Musly DSTM Mixer](https://github.com/CDrummond/lms-muslymixer)
+This API is intended to be used by [LMS Music Similarity Plugin](https://github.com/CDrummond/lms-musicsimilarity)
 
 Genres are configured via the `genres` section of `config.json`, using the
 following syntax:
