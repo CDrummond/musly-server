@@ -55,7 +55,7 @@ def read_config(path, analyse):
         config['host']='0.0.0.0'
 
     if not 'threads' in config:
-        config['threads']=8
+        config['threads']=os.cpu_count()
 
     if not 'styletracks' in config:
         config['styletracks']=1000

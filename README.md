@@ -194,7 +194,7 @@ should be ignored. To apply to all artists, use '*' - e.g. `"ignoregenre":"*"`
 all interfaces on your network.
 * `threads` Number of threads to use during analysis phase. This controls how
 many calls to `ffmpeg` are made concurrently, and how many concurrent tracks
-musly is asked to analyse.
+musly is asked to analyse. Defaults to CPU count, if not set.
 * `styletracks` A  subset of tracks is passed to musly's `setmusicstyle`
 function, by default 1000 random tracks is chosen. Alternatively, you can
 specify a percentage (e.g. `25%`) in which case that percentage of tracks will
