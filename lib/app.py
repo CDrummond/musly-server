@@ -24,6 +24,8 @@ MAX_TRACKS_TO_RETURN          = 50 # Max value for 'count' parameter
 NUM_PREV_TRACKS_FILTER_ARTIST = 15 # Try to ensure artist is not in previous N tracks
 NUM_PREV_TRACKS_FILTER_ALBUM  = 25 # Try to ensure album is not in previous N tracks
 NUM_SIMILAR_TRACKS_FACTOR     = 25 # Request count*NUM_SIMILAR_TRACKS_FACTOR from musly
+SHUFFLE_FACTOR                = 3    # How many (shuffle_factor*count) tracks to shuffle?
+
 
 class MuslyApp(Flask):
     def init(self, args, mus, app_config, jukebox_path):
@@ -291,9 +293,7 @@ def similar_api():
     if match_genre:
         _LOGGER.debug('Seed genres: %s' % seed_genres)
 
-    similarity_count = int(count * 2.5) if shuffle else count
-    # If only 1 seed track, get more tracks to shuffle to increase randomness
-    similarity_count = similarity_count * 2 if shuffle and 1==len(track_ids) else similarity_count
+    similarity_count = int(count * SHUFFLE_FACTOR) if shuffle else count
 
     matched_artists={}
     for track_id in track_ids:
