@@ -102,7 +102,7 @@ class MetadataDb(object):
         meta = tags.read_tags(track['abs'], GENRE_SEPARATOR)
         if meta is not None:
             if 'track' in track and 'title' in track['track']: # Tracks from CUE files
-                meta['title'] = track['track'['title']
+                meta['title'] = track['track']['title']
             if not 'albumartist' in meta or meta['albumartist'] is None:
                 if not 'genres' in meta or meta['genres'] is None:
                     self.cursor.execute('UPDATE tracks SET title=?, artist=?, album=?, duration=? WHERE file=?', (meta['title'], meta['artist'], meta['album'], meta['duration'], track['db']))
