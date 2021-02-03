@@ -56,7 +56,7 @@ number differs, the jukebox is recreated.
 Only 1 API is currently supported:
 
 ```
-http://HOST:11000/api/similar?track=/path/of/track&track=/path/of/another/track&count=10&filtergenre=1&min=30&max=600&ignore=/path/to/ignore&filterxmas=1&exclude=ArtistA&exclude=ArtistB
+http://HOST:11000/api/similar?track=/path/of/track&track=/path/of/another/track&count=10&filtergenre=1&min=30&max=600&filterxmas=1
 ```
 ...this will get 10 similar tracks to those supplied.
 
@@ -75,13 +75,6 @@ seconds) of tracks to be considered.
 `previous` may be used to list tracks currently in the play queue. This
 parameter, like `track`, may be repeated multiple times. These tracks will be
 used to filter chosen tracks on artist, or album, to prevent duplicates.
-
-`excludeartist` may be used to list artists to ignore. This parameter, like
-`track`, may be repeated multiple times.
-
-`excludealbum` may be used to list albums to ignore. The format of this is
-`albumarist - albumname` This parameter, like `track`, may be repeated multiple
-times.
 
 `maxsim` (range 0..100) can be used to set the maximum similarity factor. A
 factor of 0 would imply the track is identical, 100 completely different. 75 is
