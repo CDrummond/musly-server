@@ -77,4 +77,7 @@ def read_config(path, analyse):
         else:
             config['ignoregenre']=[config['ignoregenre']]
 
+    if 'normalize' in config:
+        metadata_db.set_normalize_options(config['normalize'])
+
     return config
