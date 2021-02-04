@@ -35,7 +35,7 @@ def normalize_album(album):
     s = album.lower()
     global album_rem
     for r in album_rem:
-        s=s.replace(' (%s)' % r, '')
+        s=s.replace(' (%s)' % r, '').replace(' [%s]' % r, '')
     return normalize_str(s)
 
 
@@ -57,7 +57,7 @@ def normalize_title(title):
     s = title.lower()
     global title_rem
     for r in title_rem:
-        s=s.replace(' (%s)' % r, '')
+        s=s.replace(' (%s)' % r, '').replace(' [%s]' % r, '')
     return normalize_str(s)
 
 
