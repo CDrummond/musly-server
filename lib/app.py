@@ -39,6 +39,7 @@ class MuslyApp(Flask):
         meta_db = metadata_db.MetadataDb(app_config)
         (paths, tracks) = self.mus.get_alltracks_db(meta_db.get_cursor())
         meta_db.close()
+        random.seed()
         ids = None
 
         # If we can, load musly from jukebox...
