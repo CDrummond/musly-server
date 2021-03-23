@@ -7,6 +7,7 @@ import ctypes, math, random, pickle, sqlite3, logging, os
 from collections import namedtuple
 from sys import version_info
 from concurrent.futures import ThreadPoolExecutor
+from . import metadata_db
 
 if version_info < (3, 2):
     exit('Python 3 required')
@@ -186,7 +187,7 @@ class Musly(object):
             return {'ok':True, 'index':index, 'mtrack':mtrack}
 
                 
-    def analyze_files(self, scursor, allfiles, extract_len = 120, extract_start = -48, num_threads=8):
+    def analyze_files(self, meta_db, allfiles, extract_len = 120, extract_start = -48, num_threads=8):
         numtracks = len(allfiles)
         _LOGGER.info("analyze_files: {} files to analyze".format(numtracks))
         _LOGGER.info("analyze_files: extraction length: {}s extraction start: {}s".format(extract_len, extract_start))
@@ -195,6 +196,7 @@ class Musly(object):
         analyzed_tracks = mtracks_type()
         
         futures_list = []
+        inserts_since_commit = 0
         with ThreadPoolExecutor(max_workers=num_threads) as executor:
             for i in range(numtracks):
                 futures = executor.submit(self.analyze_file, i, allfiles[i]['db'], allfiles[i]['abs'], extract_len, extract_start)
@@ -203,7 +205,11 @@ class Musly(object):
                 try:
                     result = future.result()
                     if result['ok']:
-                        scursor.execute('INSERT INTO tracks (file, vals) VALUES (?, ?)', (allfiles[result['index']]['db'], pickle.dumps(bytes(result['mtrack']), protocol=4)))
+                        meta_db.get_cursor().execute('INSERT INTO tracks (file, vals) VALUES (?, ?)', (allfiles[result['index']]['db'], pickle.dumps(bytes(result['mtrack']), protocol=4)))
+                        inserts_since_commit += 1
+                        if inserts_since_commit >= 500:
+                            inserts_since_commit = 0
+                            meta_db.commit()
                     analyzed_tracks[result['index']]=ctypes.pointer(result['mtrack'])
                 except Exception as e:
                     _LOGGER.debug("Thread exception? - %s" % str(e))
