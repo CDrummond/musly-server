@@ -96,6 +96,18 @@ class MetadataDb(object):
         except:
             pass
 
+        # Create temp table for rowid re-calc
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS tracks_tmp (
+                    file varchar UNIQUE NOT NULL,
+                    title varchar,
+                    artist varchar,
+                    album varchar,
+                    albumartist varchar,
+                    genre varchar,
+                    duration integer,
+                    ignore integer,
+                    vals blob)''')
+
 
     def commit(self):
         self.conn.commit()
@@ -154,13 +166,25 @@ class MetadataDb(object):
                 # Remove entries...
                 for path in non_existant_files:
                     self.cursor.execute('DELETE from tracks where file=?', (path, ))
-                self.commit()
-                self.cursor.execute('VACUUM');
+                self.force_rowid_update()
                 return True
         except Exception as e:
             _LOGGER.error('Failed to remove old tracks - %s' % str(e))
             pass
         return False
+
+
+    def force_rowid_update(self):
+        ''' Copy tracks into tmp and back - to force rowid to be updated '''
+        self.commit()
+        self.cursor.execute('DELETE from tracks_tmp')
+        self.cursor.execute('INSERT INTO tracks_tmp SELECT * from tracks')
+        self.cursor.execute('DELETE from tracks')
+        self.cursor.execute('INSERT INTO tracks SELECT * from tracks_tmp')
+        self.cursor.execute('DELETE from tracks_tmp')
+        self.commit()
+        self.cursor.execute('VACUUM')
+        self.commit()
 
 
     def file_already_analysed(self, path):

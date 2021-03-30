@@ -53,31 +53,7 @@ def analyse_files(mus, config, path, remove_tracks, meta_only, jukebox):
                 mus.analyze_files(meta_db, files, num_threads=config['threads'])
             if removed_tracks or (added_tracks and not meta_only):
                 (paths, db_tracks) = mus.get_alltracks_db(meta_db.get_cursor())
-
-                # Rather than just random tracks, get a random track from each album
-                style_tracks = []
-                if len(db_tracks) > config['styletracks']:
-                    _LOGGER.debug('Select style track from each album')
-                    for album in meta_db.get_albums():
-                        track = meta_db.get_sample_track(album)
-                        if track is not None:
-                            style_tracks.append(track-1) # SQLite rowids start from 1, we want from 0
-
-                    # If too many choose a random somple from these
-                    _LOGGER.debug('Num album style tracks: %d, required style tracks: %d' % (len(style_tracks), config['styletracks']))
-                    if len(style_tracks)>config['styletracks']:
-                        style_tracks = random.sample(range(len(style_tracks)), k=config['styletracks'])
-                    # if too few, then add some random from remaining
-                    elif len(style_tracks)<config['styletracks']:
-                        others = []
-                        for i in range(len(db_tracks)):
-                            if i not in style_tracks:
-                                others.append(i)
-                        others = random.sample(range(len(others)), k=config['styletracks']-len(style_tracks))
-                        for i in others:
-                            style_tracks.append(i)
-
-                mus.add_tracks(db_tracks, style_tracks)
+                mus.add_tracks(db_tracks, config['styletracks'], meta_db)
             if added_tracks:
                 _LOGGER.debug('Save metadata')
                 for file in files:

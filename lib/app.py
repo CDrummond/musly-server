@@ -37,8 +37,8 @@ class MuslyApp(Flask):
         flask_logging.setLevel(args.log_level)
         flask_logging.disabled = 'DEBUG'!=args.log_level
         meta_db = metadata_db.MetadataDb(app_config)
+        meta_db.force_rowid_update()
         (paths, tracks) = self.mus.get_alltracks_db(meta_db.get_cursor())
-        meta_db.close()
         random.seed()
         ids = None
 
@@ -48,9 +48,10 @@ class MuslyApp(Flask):
 
         if ids==None or len(ids)!=len(tracks):
             _LOGGER.debug('Adding tracks from DB to musly')
-            ids = mus.add_tracks(tracks, app_config['styletracks'])
+            ids = mus.add_tracks(tracks, app_config['styletracks'], meta_db)
             self.mus.write_jukebox(jukebox_path)
-        
+
+        meta_db.close()
         self.mta=musly.MuslyTracksAdded(paths, tracks, ids)
 
     def get_config(self):

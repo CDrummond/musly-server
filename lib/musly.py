@@ -207,13 +207,36 @@ class Musly(object):
         return analyzed_tracks
 
 
-    def add_tracks(self, mtracks, style_tracks):
+    def add_tracks(self, mtracks, num_style_tracks_required, meta_db):
         numtracks = len(mtracks)
         mtrackids_type = ctypes.c_int * numtracks
         mtrackids = mtrackids_type()
         mtracks_type = (ctypes.POINTER(self.mtrack_type)) * numtracks
         _LOGGER.debug("add_tracks: numtracks = {}".format(numtracks))
         _LOGGER.debug("add_tracks: mtracks = {}".format(repr(mtracks)))
+
+        # Rather than just random tracks, get a random track from each album
+        style_tracks = []
+        if len(mtracks) > num_style_tracks_required:
+            _LOGGER.debug('Select style track from each album')
+            for album in meta_db.get_albums():
+                track = meta_db.get_sample_track(album)
+                if track is not None:
+                    style_tracks.append(track-1) # SQLite rowids start from 1, we want from 0
+
+            # If too many choose a random somple from these
+            _LOGGER.debug('Num album style tracks: %d, required style tracks: %d' % (len(style_tracks), num_style_tracks_required))
+            if len(style_tracks)>num_style_tracks_required:
+                style_tracks = random.sample(style_tracks, k=num_style_tracks_required)
+            # if too few, then add some random from remaining
+            elif len(style_tracks)<num_style_tracks_required:
+                others = []
+                for i in range(len(mtracks)):
+                    if i not in style_tracks:
+                        others.append(i)
+                others = random.sample(others, k=num_style_tracks_required-len(style_tracks))
+                for i in others:
+                    style_tracks.append(i)
 
         num_style_tracks = len(style_tracks)
         if num_style_tracks>0:
