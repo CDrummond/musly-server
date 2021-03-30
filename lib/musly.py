@@ -73,36 +73,28 @@ class Musly(object):
         self.mtracksize = self.mus.musly_track_size(self.mj)
         self.mtrack_type = ctypes.c_float * math.ceil(self.mtracksize/ctypes.sizeof(ctypes.c_float()))
         
-        self.stats = {}
-        self.stats['aboutmethod'] = self.mus.musly_jukebox_aboutmethod(self.mj).decode()
-        self.stats['musly_version'] = self.mus.musly_version().decode()
-        self.stats['numtracks'] = 0
-        self.stats['simtracks'] = 0
         _LOGGER.debug("musly init done")
 
     def jukebox_off(self):
         self.mus.musly_jukebox_poweroff (self.mj)
 
-    def get_stats(self):
-        return self.stats
-    def set_stat(self, sname, svalue):
-        self.stats[sname] = svalue
-    def get_stat(self, sname):
-        return self.stats[sname]
-    def increase_stat(self, sname, svalue):
-        self.stats[sname] += svalue
 
     def get_numtracks(self):
         return self.mus.musly_jukebox_trackcount(self.mj)
 
+
     def get_jukebox_binsize(self):
         return self.mus.musly_jukebox_binsize(self.mj, 1, -1)
+
+
     def write_jukebox(self, path):
         _LOGGER.debug("write_jukebox: jukebox path: {}".format(path))
         if self.mus.musly_jukebox_tofile(self.mj, ctypes.c_char_p(bytes(path, 'utf-8'))) == -1:
             _LOGGER.error("musly_jukebox_tofile failed (path: {})".format(path))
             return False
         return True
+
+
     def read_jukebox(self, path):
         _LOGGER.debug("read_jukebox: jukebox path: {}".format(path))
         #localmj = self.mus.musly_jukebox_poweron(self.method, self.decoder)
@@ -115,6 +107,8 @@ class Musly(object):
             if self.mus.musly_jukebox_trackcount(localmj) == -1:
                 return None
         return localmj
+
+
     def get_jukebox_from_file(self, path):
         localmj = self.read_jukebox(path)
         if localmj == None:
@@ -132,6 +126,7 @@ class Musly(object):
         self.jukebox_off()
         self.mj = localmj
         return mtrackids
+
 
     def get_track_db(self, scursor, path):
         scursor.execute('SELECT vals FROM tracks WHERE file=?', (path,))
@@ -168,11 +163,6 @@ class Musly(object):
             mtracks[i] = ctypes.pointer(mtrack)
             mtrack = self.mtrack_type()
             i += 1
-
-        if len(paths) > 0:
-            self.set_stat('commonpath', os.path.commonpath(paths))
-        else:
-            self.set_stat('commonpath', 'N/A')
 
         return (paths, mtracks)
 
@@ -217,30 +207,25 @@ class Musly(object):
         return analyzed_tracks
 
 
-    def add_tracks(self, mtracks, max_styletracks_tracks):
+    def add_tracks(self, mtracks, style_tracks):
         numtracks = len(mtracks)
-        if str(max_styletracks_tracks).find('%')>0:
-            pc = int(max_styletracks_tracks.split('%')[0])
-            max_styletracks_tracks = int((numtracks * pc)/100.0)
-            if numtracks>1500 and max_styletracks_tracks < 1000:
-                max_styletracks_tracks = 1000
         mtrackids_type = ctypes.c_int * numtracks
         mtrackids = mtrackids_type()
         mtracks_type = (ctypes.POINTER(self.mtrack_type)) * numtracks
         _LOGGER.debug("add_tracks: numtracks = {}".format(numtracks))
         _LOGGER.debug("add_tracks: mtracks = {}".format(repr(mtracks)))
 
-        if numtracks > max_styletracks_tracks:
-            _LOGGER.debug("add_tracks: using subset (%d of %d) for setmusicstyle" % (max_styletracks_tracks, numtracks))
-            snumtracks = max_styletracks_tracks
-            sample = random.sample(range(numtracks), k=max_styletracks_tracks)
-            smtracks_type = (ctypes.POINTER(self.mtrack_type)) * max_styletracks_tracks
+        num_style_tracks = len(style_tracks)
+        if num_style_tracks>0:
+            _LOGGER.debug("add_tracks: using subset (%d of %d) for setmusicstyle" % (num_style_tracks, numtracks))
+
+            snumtracks = num_style_tracks
+            smtracks_type = (ctypes.POINTER(self.mtrack_type)) * num_style_tracks
             smtracks = smtracks_type()
-            i = 0
-            for s in sample:
-                #_LOGGER.debug("add_tracks: subset setmusicstyle: {}".format(s))
-                smtracks[i] = mtracks[s]
-                i += 1
+
+            for i in range(num_style_tracks):
+                smtracks[i] = mtracks[style_tracks[i]]
+
         else:
             smtracks_type = mtracks_type
             smtracks = mtracks
@@ -260,7 +245,6 @@ class Musly(object):
                 return None
             
         _LOGGER.info("add_tracks: added {} tracks".format(numtracks))
-        self.set_stat('numtracks', self.stats['numtracks'] + numtracks)
         return mtrackids
 
 
@@ -296,5 +280,4 @@ class Musly(object):
                 _LOGGER.error("musly_findmin")
                 return (None, None)
 
-        self.set_stat('simtracks', self.stats['simtracks'] + rnumtracks)
         return (rtrackids, rsims)

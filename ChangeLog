@@ -1,14 +1,16 @@
 0.0.2
 -----
-1. Add version string.
-2. Place ZIP contents into musly-server folder.
-3. Add 'minsim' and 'maxsim' parameters to control the similarity range.
-4. Fix reading, and usage, of 'ignore' DB column.
-5. Remove 'id' column, and use rowid instead.
-6. Vacumm DB after removing tracks to reset rowids.
-7. Pass previous tracks to server and have server use this for filtering.
-8. Optionally (true by default) shuffle tracks.
-9. If an artist has multiple similar tracks, choose one at random.
+ 1. Add version string.
+ 2. Place ZIP contents into musly-server folder.
+ 3. Add 'minsim' and 'maxsim' parameters to control the similarity range.
+ 4. Fix reading, and usage, of 'ignore' DB column.
+ 5. Remove 'id' column, and use rowid instead.
+ 6. Vacumm DB after removing tracks to reset rowids.
+ 7. Pass previous tracks to server and have server use this for filtering.
+ 8. Optionally (true by default) shuffle tracks.
+ 9. If an artist has multiple similar tracks, choose one at random.
+10. When selecting tracks for musly jukebox style tracks, try to choose at least
+    one random track in the range 60..300 seconds from each album.
 
 0.0.1
 -----

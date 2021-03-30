@@ -8,6 +8,7 @@
 import json
 import logging
 import os
+import random
 import sqlite3
 from . import cue, tags
 
@@ -165,6 +166,43 @@ class MetadataDb(object):
     def file_already_analysed(self, path):
         self.cursor.execute('SELECT vals FROM tracks WHERE file=?', (path,))
         return self.cursor.fetchone() is not None
+
+
+    def get_albums(self):
+        albums = []
+        self.cursor.execute('SELECT distinct albumartist, album FROM tracks')
+        rows = self.cursor.fetchall()
+        for row in rows:
+            albums.append({'artist':row[0], 'title':row[1]})
+        return albums
+
+
+    def get_sample_track(self, album):
+        ''' Get a random track betwen 60 and 5mins '''
+        self.cursor.execute('SELECT rowid, duration from tracks where albumartist=? and album=? order by duration asc', (album['artist'], album['title']))
+        rows = self.cursor.fetchall()
+        candidates = []
+        over5min = []
+        over7min = []
+        tooshort = []
+        for row in rows:
+            if row[1]<60:
+                tooshort.append(row[0])
+            elif row[1]>420:
+                over7min.append(row[0])
+            elif row[1]>300:
+                over5min.append(row[0])
+            else:
+                candidates.append(row[0])
+
+        while (len(candidates)<3) and (len(over5min)>0 or len(over7min)>0):
+            if len(over5min)>0:
+                candidates.append(over5min.pop())
+            elif len(over7min)>0:
+                candidates.append(over7min.pop())
+        if len(candidates)>0:
+            return random.choice(candidates)
+        return None
 
 
     def get_cursor(self):

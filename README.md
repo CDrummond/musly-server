@@ -198,13 +198,11 @@ all interfaces on your network.
 many calls to `ffmpeg` are made concurrently, and how many concurrent tracks
 musly is asked to analyse. Defaults to CPU count, if not set.
 * `styletracks` A  subset of tracks is passed to musly's `setmusicstyle`
-function, by default 1000 random tracks is chosen. Alternatively, you can
-specify a percentage (e.g. `25%`) in which case that percentage of tracks will
-be used. This config item can be used to alter this. Note, however, the larger
-the number here the longer it takes to for this call to complete. As a rough
-guide it takes ~1min per 1000 tracks. If you change this config item after the
-jukebox is written you will need to delete the jukebox file and restart the
-server.
+function, by default 1000 random tracks is chosen. This config item can be used
+to alter this. Note, however, the larger the number here the longer it takes to
+for this call to complete. As a rough guide it takes ~1min per 1000 tracks.
+If you change this config item after the jukebox is written you will need to
+delete the jukebox file and restart the server.
 
 
 ## Credits
