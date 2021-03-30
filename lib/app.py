@@ -37,7 +37,6 @@ class MuslyApp(Flask):
         flask_logging.setLevel(args.log_level)
         flask_logging.disabled = 'DEBUG'!=args.log_level
         meta_db = metadata_db.MetadataDb(app_config)
-        meta_db.force_rowid_update()
         (paths, tracks) = self.mus.get_alltracks_db(meta_db.get_cursor())
         random.seed()
         ids = None
