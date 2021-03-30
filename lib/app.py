@@ -236,7 +236,7 @@ def similar_api():
             _LOGGER.debug('Seed %d metadata:%s' % (track_id, json.dumps(meta)))
             if meta is not None:
                 seed_metadata.append(meta)
-                track_id_seed_metadata[''+track_id]=meta
+                track_id_seed_metadata[track_id]=meta
                 # Get genres for this seed track - this takes its genres and gets any matching genres from config
                 if 'genres' in meta and 'genres' in cfg:
                     for genre in meta['genres']:
@@ -282,7 +282,7 @@ def similar_api():
 
     matched_artists={}
     for track_id in track_ids:
-        match_all_genres = ('ignoregenre' in config) and (('*'==cfg['ignoregenre'][0]) or ((''+track_id in track_id_seed_metadata) and (track_id_seed_metadata[''+track_id]['artist'] in config['ignoregenre'])))
+        match_all_genres = ('ignoregenre' in cfg) and (('*'==cfg['ignoregenre'][0]) or ((track_id in track_id_seed_metadata) and (track_id_seed_metadata[track_id]['artist'] in cfg['ignoregenre'])))
 
         # Query musly for similar tracks
         _LOGGER.debug('Query musly for %d similar tracks to index: %d' % ((similarity_count*NUM_SIMILAR_TRACKS_FACTOR)+1, track_id))
