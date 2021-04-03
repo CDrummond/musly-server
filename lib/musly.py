@@ -230,11 +230,7 @@ class Musly(object):
                 style_tracks = random.sample(style_tracks, k=num_style_tracks_required)
             # if too few, then add some random from remaining
             elif len(style_tracks)<num_style_tracks_required:
-                others = []
-                for i in range(len(mtracks)):
-                    if i not in style_tracks:
-                        others.append(i)
-                others = random.sample(others, k=num_style_tracks_required-len(style_tracks))
+                others = meta_db.get_other_sample_tracks(num_style_tracks_required-len(style_tracks), style_tracks)
                 for i in others:
                     style_tracks.append(i)
 
