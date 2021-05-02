@@ -3,7 +3,7 @@ Musly - access libmusly functions
 (c) 2017 R.S.U. / GPL v3 / https://www.nexus0.net/pub/sw/lmsmusly
 '''
 
-import ctypes, math, random, pickle, sqlite3, logging, os
+import ctypes, math, random, pickle, sqlite3, logging, os, platform
 from collections import namedtuple
 from sys import version_info
 from concurrent.futures import ThreadPoolExecutor
@@ -28,7 +28,11 @@ class MuslyJukebox(ctypes.Structure):
 
 class Musly(object):
     def __init__(self, libmusly):
-        ctypes.CDLL(libmusly.replace('libmusly.so', 'libmusly_resample.so'))
+        hostOS = (platform.system())
+        if hostOS == "Darwin":
+            ctypes.CDLL(libmusly.replace('libmusly.dylib', 'libmusly_resample.dylib'))
+        else:
+            ctypes.CDLL(libmusly.replace('libmusly.so', 'libmusly_resample.so'))
         self.mus = ctypes.CDLL(libmusly)
 
         # setup func calls
