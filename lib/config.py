@@ -58,6 +58,12 @@ def read_config(path, analyse):
     if not 'threads' in config:
         config['threads']=os.cpu_count()
 
+    if not 'extractlen' in config:
+        config['extractlen']=60
+
+    if not 'extractstart' in config:
+        config['extractstart']=-48
+
     if not 'styletracks' in config:
         config['styletracks']=1000
 

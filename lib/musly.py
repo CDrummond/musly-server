@@ -177,7 +177,7 @@ class Musly(object):
             return {'ok':True, 'index':index, 'mtrack':mtrack}
 
                 
-    def analyze_files(self, meta_db, allfiles, extract_len = 120, extract_start = -48, num_threads=8):
+    def analyze_files(self, meta_db, allfiles, extract_len = 60, extract_start = -48, num_threads=8):
         numtracks = len(allfiles)
         _LOGGER.info("analyze_files: {} files to analyze".format(numtracks))
         _LOGGER.info("analyze_files: extraction length: {}s extraction start: {}s".format(extract_len, extract_start))
