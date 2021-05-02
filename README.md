@@ -162,7 +162,7 @@ This has the following format:
  "threads":8,
  "styletracks":1000,
  "extractstart":-48,
- "extractlen":60
+ "extractlen":30
 }
 ```
 

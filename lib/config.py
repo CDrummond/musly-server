@@ -59,7 +59,7 @@ def read_config(path, analyse):
         config['threads']=os.cpu_count()
 
     if not 'extractlen' in config:
-        config['extractlen']=60
+        config['extractlen']=30
 
     if not 'extractstart' in config:
         config['extractstart']=-48

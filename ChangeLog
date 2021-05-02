@@ -1,6 +1,6 @@
 0.0.3
 -----
-1. Musly itself only uses a max of 60 seconds, so use this as the default.
+1. Change default 'extractlen' to 30, to match Musly recommended value.
 2. Make extract start and length configurable.
 
 0.0.2
