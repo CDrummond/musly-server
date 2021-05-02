@@ -205,9 +205,6 @@ to alter this. Note, however, the larger the number here the longer it takes to
 for this call to complete. As a rough guide it takes ~1min per 1000 tracks.
 If you change this config item after the jukebox is written you will need to
 delete the jukebox file and restart the server.
-* Musly does not anlyse the whole file, only a potion. `extractstart` and
-`extractlen` may be used to specify the portion of the audio to be analysed.
-`extractstart`
 * `extractlen` The maximum length in seconds of the file to decode. If zero
 or greater than the file length, then the whole file will be decoded. Note,
 however, that only a maximum of 60 seconds is used for analysis - therefore
