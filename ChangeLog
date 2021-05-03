@@ -2,6 +2,7 @@
 -----
 1. Change default 'extractlen' to 30, to match Musly recommended value.
 2. Make extract start and length configurable.
+3. Allow configuring no repeat artist/album/track
 
 0.0.2
 -----

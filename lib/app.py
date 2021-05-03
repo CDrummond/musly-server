@@ -18,13 +18,13 @@ from . import cue, filters, metadata_db, musly
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_TRACKS_TO_RETURN      = 5  # Number of tracks to return, if none specified
-MIN_TRACKS_TO_RETURN          = 5  # Min value for 'count' parameter
-MAX_TRACKS_TO_RETURN          = 50 # Max value for 'count' parameter
-NUM_PREV_TRACKS_FILTER_ARTIST = 15 # Try to ensure artist is not in previous N tracks
-NUM_PREV_TRACKS_FILTER_ALBUM  = 25 # Try to ensure album is not in previous N tracks
-NUM_SIMILAR_TRACKS_FACTOR     = 25 # Request count*NUM_SIMILAR_TRACKS_FACTOR from musly
-SHUFFLE_FACTOR                = 3    # How many (shuffle_factor*count) tracks to shuffle?
+DEFAULT_TRACKS_TO_RETURN              = 5  # Number of tracks to return, if none specified
+MIN_TRACKS_TO_RETURN                  = 5  # Min value for 'count' parameter
+MAX_TRACKS_TO_RETURN                  = 50 # Max value for 'count' parameter
+DEFAULT_NUM_PREV_TRACKS_FILTER_ARTIST = 15 # Try to ensure artist is not in previous N tracks
+DEFAULT_NUM_PREV_TRACKS_FILTER_ALBUM  = 25 # Try to ensure album is not in previous N tracks
+NUM_SIMILAR_TRACKS_FACTOR             = 25 # Request count*NUM_SIMILAR_TRACKS_FACTOR from musly
+SHUFFLE_FACTOR                        = 3    # How many (shuffle_factor*count) tracks to shuffle?
 
 
 class MuslyApp(Flask):
@@ -183,7 +183,14 @@ def similar_api():
     max_similarity = int(get_value(params, 'maxsim', 75, isPost))/100.0
     min_duration = int(get_value(params, 'min', 0, isPost))
     max_duration = int(get_value(params, 'max', 0, isPost))
+    no_repeat_artist = int(get_value(params, 'norepart', 0, isPost))
+    no_repeat_album = int(get_value(params, 'norepalb', 0, isPost))
     exclude_christmas = get_value(params, 'filterxmas', '0', isPost)=='1' and datetime.now().month!=12
+
+    if no_repeat_artist<0 or no_repeat_artist>200:
+        no_repeat_artist = DEFAULT_NUM_PREV_TRACKS_FILTER_ARTIST
+    if no_repeat_album<0 or no_repeat_album>200:
+        no_repeat_album = DEFAULT_NUM_PREV_TRACKS_FILTER_ALBUM
 
     mta = musly_app.get_mta()
     mus = musly_app.get_musly()
@@ -311,10 +318,10 @@ def similar_api():
                         filtered_by_current_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
                         if meta['artist'] in matched_artists and resp_similarity[i] - matched_artists[meta['artist']]['similarity'] <= 0.2:
                             matched_artists[meta['artist']]['tracks'].append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
-                    elif filters.same_artist_or_album(previous_metadata, meta, False, NUM_PREV_TRACKS_FILTER_ARTIST):
+                    elif no_repeat_artist>0 and filters.same_artist_or_album(previous_metadata, meta, False, no_repeat_artist):
                         _LOGGER.debug('FILTERED(previous(artist)) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                         filtered_by_previous_tracks.append({'path':mta.paths[resp_ids[i]], 'similarity':resp_similarity[i]})
-                    elif filters.same_artist_or_album(previous_metadata, meta, True, NUM_PREV_TRACKS_FILTER_ALBUM):
+                    elif no_repeat_album>0 and filters.same_artist_or_album(previous_metadata, meta, True, no_repeat_album):
                         _LOGGER.debug('FILTERED(previous(album)) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
                     elif filters.match_title(current_titles, meta):
                         _LOGGER.debug('FILTERED(title) ID:%d Path:%s Similarity:%f Meta:%s' % (resp_ids[i], mta.paths[resp_ids[i]], resp_similarity[i], json.dumps(meta)))
