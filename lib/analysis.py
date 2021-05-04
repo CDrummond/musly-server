@@ -49,16 +49,16 @@ def analyse_files(mus, config, path, remove_tracks, meta_only, jukebox):
         cue.split_cue_tracks(files, config['threads'])
         added_tracks = len(files)>0
         if added_tracks or removed_tracks:
-            if added_tracks and not meta_only:
-                mus.analyze_files(meta_db, files, extract_len=config['extractlen'], extract_start=config['extractstart'], num_threads=config['threads'])
-            if removed_tracks or (added_tracks and not meta_only):
-                (paths, db_tracks) = mus.get_alltracks_db(meta_db.get_cursor())
-                mus.add_tracks(db_tracks, config['styletracks'], meta_db)
             if added_tracks:
+                if not meta_only:
+                    mus.analyze_files(meta_db, files, extract_len=config['extractlen'], extract_start=config['extractstart'], num_threads=config['threads'])
                 _LOGGER.debug('Save metadata')
                 for file in files:
                     meta_db.set_metadata(file)
             meta_db.commit()
+            if removed_tracks or (added_tracks and not meta_only):
+                (paths, db_tracks) = mus.get_alltracks_db(meta_db.get_cursor())
+                mus.add_tracks(db_tracks, config['styletracks'], meta_db)
             meta_db.close()
             if removed_tracks or not meta_only:
                 mus.write_jukebox(jukebox)
