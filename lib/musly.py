@@ -248,7 +248,10 @@ class Musly(object):
 
             for i in range(num_style_tracks):
                 smtracks[i] = mtracks[style_tracks[i]]
-
+        elif numtracks > max_styletracks_tracks:
+            snumtracks = max_styletracks_tracks
+            sample = random.sample(range(numtracks), k=max_styletracks_tracks)
+            smtracks_type = (ctypes.POINTER(self.mtrack_type)) * max_styletracks_tracks
         else:
             smtracks_type = mtracks_type
             smtracks = mtracks
