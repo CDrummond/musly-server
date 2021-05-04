@@ -241,7 +241,15 @@ class MetadataDb(object):
                     tracks.append(index)
                     if len(tracks)==limit:
                         return tracks
-
+        if len(tracks)<limit:
+            self.cursor.execute('SELECT rowid from tracks order by random()')
+            rows = self.cursor.fetchall()
+            for row in rows:
+                index = row[0]-1
+                if index not in exclude_set:
+                    tracks.append(index)
+                    if len(tracks)==limit:
+                        return tracks
         return tracks
 
 
