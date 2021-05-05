@@ -240,7 +240,7 @@ class Musly(object):
 
         num_style_tracks = len(style_tracks)
         if num_style_tracks>0:
-            _LOGGER.debug("add_tracks: using subset (%d of %d) for setmusicstyle" % (num_style_tracks, numtracks))
+            _LOGGER.debug("add_tracks: using subset (%d of %d) for setmusicstyle (chosen from meta db)" % (num_style_tracks, numtracks))
 
             snumtracks = num_style_tracks
             smtracks_type = (ctypes.POINTER(self.mtrack_type)) * num_style_tracks
@@ -248,11 +248,13 @@ class Musly(object):
 
             for i in range(num_style_tracks):
                 smtracks[i] = mtracks[style_tracks[i]]
-        elif numtracks > max_styletracks_tracks:
-            snumtracks = max_styletracks_tracks
-            sample = random.sample(range(numtracks), k=max_styletracks_tracks)
-            smtracks_type = (ctypes.POINTER(self.mtrack_type)) * max_styletracks_tracks
+        elif numtracks > num_style_tracks_required:
+            _LOGGER.debug("add_tracks: using subset (%d of %d) for setmusicstyle" % (num_style_tracks_required, numtracks))
+            snumtracks = num_style_tracks_required
+            sample = random.sample(range(numtracks), k=num_style_tracks_required)
+            smtracks_type = (ctypes.POINTER(self.mtrack_type)) * num_style_tracks_required
         else:
+            _LOGGER.debug("add_tracks: using all tracks (%d) for setmusicstyle" % (numtracks))
             smtracks_type = mtracks_type
             smtracks = mtracks
             snumtracks = numtracks
