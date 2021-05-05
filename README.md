@@ -21,8 +21,8 @@ accomplished via:
 ./musly-server.py --analyse /path/to/music/folder
 ```
 
-This takes about 50 minutes to process 20k tracks. The process anylsys tracks,
-add them to musly, intialises musly's 'jukebox' style with 1000 random tracks,
+This takes about 50 minutes to process 20k tracks. The process analyses tracks,
+adds them to musly, intialises musly's 'jukebox' style with 1000 random tracks,
 and extracts certain tags. If re-run new tracks will be added, and old
 (non-existant) will be removed. Pass `--keep-old` to keep these old tracks.
 
@@ -97,8 +97,7 @@ etc). Initally the API will ignore musly tracks from the same artist or album of
 the seed tracks (and any previous in the list, any albums from the 25
 `previous` tracks, or albums from the last 15 `previous` tracks). If, because of
 this filtering, there are less than the requested amount then the highest
-similarity tracks from the filtered-out lists are chosen. Finally all tracks are
-sorted by similarity, with the most similar first.
+similarity tracks from the filtered-out lists are chosen.
 
 Metadata for tracks is stored in an SQLite database, this has an `ignore` column
 which if set to `1` will cause the API to not use this track if it is returned
@@ -122,8 +121,8 @@ following syntax:
 
 If a seed track has `Hard Rock` as its genre, then only tracks with `Rock`,
 `Hard Rock`, or `Metal` will be allowed. If a seed track has a genre that is not
-listed here then any track returned by Musly, that does not cotaiain any genre
-lsited here, will be considered acceptable. Therefore, if seed is `Pop` then
+listed here then any track returned by Musly, that does not contain any genre
+listed here, will be considered acceptable. Therefore, if seed is `Pop` then
 a `Hard Rock` track would not be considered.
 
 ### HTTP Post
@@ -222,6 +221,30 @@ zero, decoding starts at the beginning. If negative, the excerpt is centered in
 the file, but starts at -`extractstart` the latest. If positive and
 `extractstart`+`extractlen` exceeds the file length, then the excerpt is taken
 from the end of the file.
+
+
+## Ignoring artists, albums, etc.
+
+To mark certains items as 'ignored' (i.e. so that they are not added to mixes),
+create a text file where each line contains the unique path, e.g.:
+
+```
+AC-DC/Power Up/
+The Police/
+```
+
+Then call:
+
+```
+./update-db.py --db musly.db --ignore ignore.txt
+```
+
+This sets the `ignore` column to 1 for all items whose file starts with one of
+the listed lines.
+
+Setting a track's `ignore` to `1` will exclude tracks from being added to
+mixes - but if they are already in the queue, then they can sill be used as seed
+tracks.
 
 
 ## Credits
