@@ -9,8 +9,12 @@ This library needs to be compiled, and `config.json` (from this API project)
 updated to store the location of this library. This repo contains pre-built
 built versions for:
 
-1. Fedora32 64-bit
+1. Fedora 64-bit
 2. Raspbian Buster 32-bit
+
+**macOS**
+
+Instructions, and binaries, for musly on macOS can be found [here](https://github.com/AF-1/sobras/tree/main/lms-musly-server_on_macos)
 
 ## Analysing Tracks
 
