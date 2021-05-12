@@ -100,14 +100,14 @@ class Musly(object):
 
 
     def read_jukebox(self, path):
-        _LOGGER.debug("read_jukebox: jukebox path: {}".format(path))
+        _LOGGER.debug("Read jukebox: {}".format(path))
         #localmj = self.mus.musly_jukebox_poweron(self.method, self.decoder)
         localmj = self.mus.musly_jukebox_fromfile(ctypes.c_char_p(bytes(path, 'utf-8')))
         if localmj == None:
-            _LOGGER.error("musly_jukebox_fromfile failed (path: {})".format(path))
+            _LOGGER.error("Failed to read juebox: {}".format(path))
             return None
         else:
-            _LOGGER.info("read_jukebox: musly_jukebox_fromfile: loaded {} tracks".format(self.mus.musly_jukebox_trackcount(localmj)))
+            _LOGGER.info("Loaded {} tracks".format(self.mus.musly_jukebox_trackcount(localmj)))
             if self.mus.musly_jukebox_trackcount(localmj) == -1:
                 return None
         return localmj
@@ -116,7 +116,6 @@ class Musly(object):
     def get_jukebox_from_file(self, path):
         localmj = self.read_jukebox(path)
         if localmj == None:
-            _LOGGER.error("get_jukebox_from_file failed at read_jukebox()")
             return None
         numtracks = self.mus.musly_jukebox_trackcount(localmj)
         mtrackids_type = ctypes.c_int * numtracks
@@ -124,9 +123,8 @@ class Musly(object):
         #int musly_jukebox_gettrackids (musly_jukebox *  jukebox,musly_trackid *  trackids)
         self.mus.musly_jukebox_gettrackids.argtypes = [ctypes.POINTER(MuslyJukebox), ctypes.POINTER(mtrackids_type)]
         if self.mus.musly_jukebox_gettrackids(localmj, ctypes.pointer(mtrackids)) == -1:
-            _LOGGER.error("get_jukebox_from_file failed at musly_jukebox_gettrackids")
+            _LOGGER.error("Failed to get track IDs from jukebox")
             return None
-        _LOGGER.debug("get_jukebox_from_file: success")
         self.jukebox_off()
         self.mj = localmj
         return mtrackids
@@ -135,22 +133,20 @@ class Musly(object):
     def get_track_db(self, scursor, path):
         scursor.execute('SELECT vals FROM tracks WHERE file=?', (path,))
         row = scursor.fetchone()
-        if(row == None):
-            _LOGGER.debug("get_track_db: not found: {}".format(path))
+        if (row == None):
+            _LOGGER.debug("Culd not find {} in DB".format(path))
             return None
         else:
             mtrack = self.mtrack_type()
             smt_c = ctypes.c_char_p(pickle.loads(row[0]))
             smt_f = ctypes.cast(smt_c, ctypes.POINTER(ctypes.c_float))
             ctypes.memmove(mtrack, smt_f, self.mtracksize)
-            _LOGGER.debug("get_track_db: found: {} ({})".format(path, repr(mtrack)))
             return mtrack
 
 
     def get_alltracks_db(self, scursor):
         scursor.execute('SELECT count(vals) FROM tracks')
         numtracks = scursor.fetchone()[0]
-        _LOGGER.debug("get_tracks_db: {} rows".format(numtracks))
         mtrack = self.mtrack_type()
         mtracks_type = (ctypes.POINTER(self.mtrack_type)) * numtracks
         mtracks = mtracks_type()
@@ -173,7 +169,7 @@ class Musly(object):
 
     def analyze_file(self, index, db_path, abs_path, extract_len, extract_start):
         mtrack = self.mtrack_type()
-        _LOGGER.debug("analyze_files: analyze: {}".format(db_path))
+        _LOGGER.debug("Analyze: {}".format(db_path))
         if self.mus.musly_track_analyze_audiofile(self.mj, abs_path.encode(), extract_len, extract_start, mtrack) == -1:
             _LOGGER.error("musly_track_analyze_audiofile failed for {}".format(abs_path))
             return {'ok':False, 'index':index, 'mtrack':mtrack}
@@ -183,8 +179,8 @@ class Musly(object):
                 
     def analyze_files(self, meta_db, allfiles, extract_len = 60, extract_start = -48, num_threads=8):
         numtracks = len(allfiles)
-        _LOGGER.info("analyze_files: {} files to analyze".format(numtracks))
-        _LOGGER.info("analyze_files: extraction length: {}s extraction start: {}s".format(extract_len, extract_start))
+        _LOGGER.info("Have {} files to analyze".format(numtracks))
+        _LOGGER.info("Extraction length: {}s extraction start: {}s".format(extract_len, extract_start))
 
         mtracks_type = (ctypes.POINTER(self.mtrack_type)) * numtracks
         analyzed_tracks = mtracks_type()
@@ -216,8 +212,7 @@ class Musly(object):
         mtrackids_type = ctypes.c_int * numtracks
         mtrackids = mtrackids_type()
         mtracks_type = (ctypes.POINTER(self.mtrack_type)) * numtracks
-        _LOGGER.debug("add_tracks: numtracks = {}".format(numtracks))
-        _LOGGER.debug("add_tracks: mtracks = {}".format(repr(mtracks)))
+        _LOGGER.debug("Numtracks = {}".format(numtracks))
 
         # Rather than just random tracks, get a random track from each album
         style_tracks = []
@@ -231,16 +226,18 @@ class Musly(object):
             # If too many choose a random somple from these
             _LOGGER.debug('Num album style tracks: %d, required style tracks: %d' % (len(style_tracks), num_style_tracks_required))
             if len(style_tracks)>num_style_tracks_required:
+                _LOGGER.debug('Selecting %d random tracks from album style tracks' % num_style_tracks_required)
                 style_tracks = random.sample(style_tracks, k=num_style_tracks_required)
             # if too few, then add some random from remaining
             elif len(style_tracks)<num_style_tracks_required:
+                _LOGGER.debug('Choosing another %d tracks from DB' % (num_style_tracks_required-len(style_tracks)))
                 others = meta_db.get_other_sample_tracks(num_style_tracks_required-len(style_tracks), style_tracks)
                 for i in others:
                     style_tracks.append(i)
 
         num_style_tracks = len(style_tracks)
         if num_style_tracks>0:
-            _LOGGER.debug("add_tracks: using subset (%d of %d) for setmusicstyle (chosen from meta db)" % (num_style_tracks, numtracks))
+            _LOGGER.debug("Using subset (%d of %d) for setmusicstyle (chosen from meta db)" % (num_style_tracks, numtracks))
 
             snumtracks = num_style_tracks
             smtracks_type = (ctypes.POINTER(self.mtrack_type)) * num_style_tracks
@@ -249,12 +246,12 @@ class Musly(object):
             for i in range(num_style_tracks):
                 smtracks[i] = mtracks[style_tracks[i]]
         elif numtracks > num_style_tracks_required:
-            _LOGGER.debug("add_tracks: using subset (%d of %d) for setmusicstyle" % (num_style_tracks_required, numtracks))
+            _LOGGER.debug("Using subset (%d of %d) for setmusicstyle" % (num_style_tracks_required, numtracks))
             snumtracks = num_style_tracks_required
             sample = random.sample(range(numtracks), k=num_style_tracks_required)
             smtracks_type = (ctypes.POINTER(self.mtrack_type)) * num_style_tracks_required
         else:
-            _LOGGER.debug("add_tracks: using all tracks (%d) for setmusicstyle" % (numtracks))
+            _LOGGER.debug("Using all tracks (%d) for setmusicstyle" % (numtracks))
             smtracks_type = mtracks_type
             smtracks = mtracks
             snumtracks = numtracks
@@ -272,7 +269,7 @@ class Musly(object):
                 _LOGGER.error("musly_jukebox_addtracks")
                 return None
             
-        _LOGGER.info("add_tracks: added {} tracks".format(numtracks))
+        _LOGGER.info("Added {} tracks".format(numtracks))
         return mtrackids
 
 
@@ -296,7 +293,7 @@ class Musly(object):
 #        for t in mtracks:
 #            _LOGGER.debug("get_similars: mtrack = {}".format(repr(t.contents)))
 
-        _LOGGER.debug("get_similars: seedtrack = {} numres={}".format(repr(seedtrack), rnumtracks))
+        _LOGGER.debug("Get similar tracks, seedtrack = {} numres={}".format(repr(seedtrack), rnumtracks))
 
         if (self.mus.musly_jukebox_similarity(self.mj, seedtrack, ctypes.c_int(seedtrackid), ctypes.pointer(mtracks), ctypes.pointer(mtrackids), ctypes.c_int(numtracks), ctypes.pointer(msims))) == -1:
             _LOGGER.error("musly_jukebox_similarity")
