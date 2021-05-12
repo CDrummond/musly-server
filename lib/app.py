@@ -192,7 +192,7 @@ def similar_api():
     if no_repeat_album<0 or no_repeat_album>200:
         no_repeat_album = DEFAULT_NUM_PREV_TRACKS_FILTER_ALBUM
 
-    no_repeat_artist_or_album = no_repeat_album if no_repeat_album<no_repeat_artist else no_repeat_artist
+    no_repeat_artist_or_album = no_repeat_album if no_repeat_album>no_repeat_artist else no_repeat_artist
 
     mta = musly_app.get_mta()
     mus = musly_app.get_musly()
