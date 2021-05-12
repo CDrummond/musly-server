@@ -293,7 +293,7 @@ class Musly(object):
 #        for t in mtracks:
 #            _LOGGER.debug("get_similars: mtrack = {}".format(repr(t.contents)))
 
-        _LOGGER.debug("Get similar tracks, seedtrack = {} numres={}".format(repr(seedtrack), rnumtracks))
+#        _LOGGER.debug("Get similar tracks, seedtrack = {} numres={}".format(repr(seedtrack), rnumtracks))
 
         if (self.mus.musly_jukebox_similarity(self.mj, seedtrack, ctypes.c_int(seedtrackid), ctypes.pointer(mtracks), ctypes.pointer(mtrackids), ctypes.c_int(numtracks), ctypes.pointer(msims))) == -1:
             _LOGGER.error("musly_jukebox_similarity")
