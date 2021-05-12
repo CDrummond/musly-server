@@ -192,6 +192,8 @@ def similar_api():
     if no_repeat_album<0 or no_repeat_album>200:
         no_repeat_album = DEFAULT_NUM_PREV_TRACKS_FILTER_ALBUM
 
+    no_repeat_artist_or_album = no_repeat_album if no_repeat_album<no_repeat_artist else no_repeat_artist
+
     mta = musly_app.get_mta()
     mus = musly_app.get_musly()
     cfg = musly_app.get_config()
@@ -271,7 +273,7 @@ def similar_api():
                 pass
             if track_id is not None and track_id>=0:
                 previous_track_ids.append(track_id)
-                if len(previous_metadata)<NUM_PREV_TRACKS_FILTER_ALBUM:
+                if len(previous_metadata)<no_repeat_artist_or_album:
                     meta = meta_db.get_metadata(track_id+1) # IDs (rowid) in SQLite are 1.. musly is 0..
                     if meta:
                         previous_metadata.append(meta)
