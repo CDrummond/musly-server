@@ -169,7 +169,7 @@ class Musly(object):
 
     def analyze_file(self, index, total, db_path, abs_path, extract_len, extract_start):
         mtrack = self.mtrack_type()
-        _LOGGER.debug("[{}/{}] Analyze: {}".format(index+1, total, db_path))
+        _LOGGER.debug("[{}/{} {}%] Analyze: {}".format(index+1, total, int((index+1)*100/total), db_path))
         if self.mus.musly_track_analyze_audiofile(self.mj, abs_path.encode(), extract_len, extract_start, mtrack) == -1:
             _LOGGER.error("musly_track_analyze_audiofile failed for {}".format(abs_path))
             return {'ok':False, 'index':index, 'mtrack':mtrack}
