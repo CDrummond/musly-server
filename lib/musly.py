@@ -167,9 +167,9 @@ class Musly(object):
         return (paths, mtracks)
 
 
-    def analyze_file(self, index, db_path, abs_path, extract_len, extract_start):
+    def analyze_file(self, index, total, db_path, abs_path, extract_len, extract_start):
         mtrack = self.mtrack_type()
-        _LOGGER.debug("Analyze: {}".format(db_path))
+        _LOGGER.debug("[{}/{}] Analyze: {}".format(index+1, total, db_path))
         if self.mus.musly_track_analyze_audiofile(self.mj, abs_path.encode(), extract_len, extract_start, mtrack) == -1:
             _LOGGER.error("musly_track_analyze_audiofile failed for {}".format(abs_path))
             return {'ok':False, 'index':index, 'mtrack':mtrack}
@@ -189,7 +189,7 @@ class Musly(object):
         inserts_since_commit = 0
         with ThreadPoolExecutor(max_workers=num_threads) as executor:
             for i in range(numtracks):
-                futures = executor.submit(self.analyze_file, i, allfiles[i]['db'], allfiles[i]['abs'], extract_len, extract_start)
+                futures = executor.submit(self.analyze_file, i, numtracks, allfiles[i]['db'], allfiles[i]['abs'], extract_len, extract_start)
                 futures_list.append(futures)
             for future in futures_list:
                 try:
