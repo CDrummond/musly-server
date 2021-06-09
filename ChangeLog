@@ -5,6 +5,7 @@
 3. Allow configuring no repeat artist/album/track.
 4. Fix parsing of 1/0 parameters.
 5. Display track number, total, and percentage during analysis.
+6. Add a test mode to test musly similarities.
 
 0.0.2
 -----

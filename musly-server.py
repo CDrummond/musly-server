@@ -10,7 +10,7 @@
 import argparse
 import logging
 import os
-from lib import analysis, app, config, metadata_db, musly, version
+from lib import analysis, app, config, metadata_db, musly, test, version
 
 JUKEBOX_FILE = 'musly.jukebox'
 _LOGGER = logging.getLogger(__name__)
@@ -22,6 +22,7 @@ if __name__=='__main__':
     parser.add_argument('-a', '--analyse', metavar='PATH', type=str, help="Analyse file/folder (use 'm' for configured musly folder)", default='')
     parser.add_argument('-m', '--meta-only', action='store_true', default=False, help='Update metadata database only (used in conjuction with --analyse)')
     parser.add_argument('-k', '--keep-old', action='store_true', default=False, help='Do not remove non-existant tracks from DB (used in conjuction with --analyse)')
+    parser.add_argument('-t', '--test', action='store_true', default=False, help='Test musly')
     args = parser.parse_args()
     logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s', level=args.log_level, datefmt='%Y-%m-%d %H:%M:%S')
     cfg = config.read_config(args.config, args.analyse)
@@ -35,6 +36,8 @@ if __name__=='__main__':
     if args.analyse:
         path = cfg['paths']['musly'] if args.analyse =='m' else args.analyse
         analysis.analyse_files(mus, cfg, path, not args.keep_old, args.meta_only, jukebox_file)
+    elif args.test:
+        test.test_jukebox(mus, cfg, jukebox_file)
     else:
         app.start_app(args, mus, cfg, jukebox_file)
 

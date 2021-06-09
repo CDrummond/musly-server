@@ -45,6 +45,49 @@ read the track listing from the LMS db file and use `ffmpeg` to split the
 music file into temporary 128kbps MP3 files for analysis. The files are removed
 once analysis is complete.
 
+
+## Testing Analysis
+
+Musly has a bug where sometimes it gives the same similarity to all tracks,
+which will obviously break the API this script is designed for. To test if the
+analysis is correct you can run the script in test mode:
+
+```
+./musly-server.py --log-level INFO --test
+```
+
+This will query musly for the 50 most similar tracks to the 1st analysed track.
+It then checks that there are different similarities, and if not an error
+message is shown.
+
+If this script states that there is an error you can try simply removing the
+jukebox file and re-runnnig this script - it will recreate the jukebox with
+random tracks. If this keeps failing it might be better to adjust the
+`styletracks` config item, delete the jukebox, and test again.
+
+To aid with this, I have a simple bash script that repeatedly tests musly until
+the similarities are different. This is detailed below (before using, update
+`JUKEBOX` and `CONFIG` to your specific values):
+
+```
+JUKEBOX=/home/user/musly.jukebox
+CONFIG=/home/user/config.json
+
+while [ 1 ] ; do
+   ../musly-server/musly-server.py -c "$CONFIG" -l INFO -t
+   if [ $? -ne 0 ] ; then
+       echo ""
+       echo "**** Removing $JUKEBOX"
+       echo ""
+       rm "$JUKEBOX"
+   else
+       echo ""
+       echo "Musly OK"
+       exit
+   fi
+done
+```
+
 ## Similarity API 
 
 The API server can be installed as a Systemd service, or started manually:
