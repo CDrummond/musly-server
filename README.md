@@ -48,9 +48,10 @@ once analysis is complete.
 
 ## Testing Analysis
 
-Musly has a bug where sometimes it gives the same similarity to all tracks,
-which will obviously break the API this script is designed for. To test if the
-analysis is correct you can run the script in test mode:
+Musly has a [bug](https://github.com/dominikschnitzer/musly/issues/43) where
+sometimes it gives the same similarity to all tracks, which will obviously break
+the API this script is designed for. To test if the analysis is correct you can
+run the script in test mode:
 
 ```
 ./musly-server.py --log-level INFO --test
