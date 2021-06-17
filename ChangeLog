@@ -6,6 +6,7 @@
 4. Fix parsing of 1/0 parameters.
 5. Display track number, total, and percentage during analysis.
 6. Add a test mode to test musly similarities.
+7. Expand /api/dump to allow usage in MusicSimilarity LMS plugin.
 
 0.0.2
 -----

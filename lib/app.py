@@ -9,6 +9,7 @@ import argparse
 from datetime import datetime
 import json
 import logging
+import math
 import os
 import random
 import sqlite3
@@ -135,20 +136,32 @@ def dump_api():
         track_id = mta.paths.index( track )
         if track_id<0:
             abort(404)
-        txt = get_value(params, 'format', '', False)=='text'
+        fmt = get_value(params, 'format', '', isPost)
+        txt = fmt=='text'
+        txt_url = fmt=='text-url'
+
         ( resp_ids, resp_similarity ) = mus.get_similars( mta.mtracks, mta.mtrackids, track_id, 65535 )
         resp=[]
         prev_id=-1
-        count = int(get_value(params, 'count', 50000, isPost))
-        for i in range(1, min(count, len(resp_ids))): # Ignore 1st track, as its the seed
+        count = int(get_value(params, 'count', 1000, isPost))
+
+        for i in range(0, len(resp_ids)):
+            if math.isnan(resp_similarity[i]):
+                continue
+            _LOGGER.debug("%s %s" % (mta.paths[resp_ids[i]], resp_similarity[i]))
             if resp_ids[i]==prev_id:
                 break
             prev_id=resp_ids[i]
             if txt:
                 resp.append("%s\t%f" % (mta.paths[resp_ids[i]], resp_similarity[i]))
+            elif txt_url:
+                path = '%s%s' % (root, mta.paths[resp_ids[i]])
+                resp.append(cue.convert_to_cue_url(path))
             else:
                 resp.append({'file':mta.paths[resp_ids[i]], 'sim':resp_similarity[i]})
-        if txt:
+            if len(resp)>=count:
+                break
+        if txt or txt_url:
             return '\n'.join(resp)
         else:
             return json.dumps(resp)
@@ -297,6 +310,8 @@ def similar_api():
         ( resp_ids, resp_similarity ) = mus.get_similars( mta.mtracks, mta.mtrackids, track_id, (count*NUM_SIMILAR_TRACKS_FACTOR)+1 )
         accepted_tracks = 0
         for i in range(1, len(resp_ids)): # Ignore 1st track, as its the seed
+            if math.isnan(resp_similarity[i]):
+                continue
             if (not resp_ids[i] in track_ids) and (not resp_ids[i] in previous_track_ids) and (not resp_ids[i] in similar_track_ids) and (resp_similarity[i]>0.0) and (resp_similarity[i]<=max_similarity):
                 similar_track_ids.append(resp_ids[i])
 
