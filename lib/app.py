@@ -139,26 +139,36 @@ def dump_api():
         fmt = get_value(params, 'format', '', isPost)
         txt = fmt=='text'
         txt_url = fmt=='text-url'
+        match_artist = int(get_value(params, 'filterartist', '0', isPost))==1
+        meta = meta_db.get_metadata(track_id+1) if match_artist else None # IDs (rowid) in SQLite are 1.. musly is 0..
 
-        ( resp_ids, resp_similarity ) = mus.get_similars( mta.mtracks, mta.mtrackids, track_id, 65535 )
+        ( resp_ids, resp_similarity ) = mus.get_similars( mta.mtracks, mta.mtrackids, track_id, 50000 )
         resp=[]
         prev_id=-1
         count = int(get_value(params, 'count', 1000, isPost))
 
+        tracks=[]
         for i in range(0, len(resp_ids)):
-            if math.isnan(resp_similarity[i]):
-                continue
-            _LOGGER.debug("%s %s" % (mta.paths[resp_ids[i]], resp_similarity[i]))
             if resp_ids[i]==prev_id:
                 break
             prev_id=resp_ids[i]
+            if math.isnan(resp_similarity[i]):
+                continue
+            if meta is not None:
+                track = meta_db.get_metadata(resp_ids[i]+1)
+                if track['artist'] != meta['artist']:
+                    continue
+            tracks.append({'path':mta.paths[resp_ids[i]], 'sim':resp_similarity[i]})
+
+        tracks = sorted(tracks, key=lambda k: k['sim'])
+        for track in tracks:
+            _LOGGER.debug("%s %s" % (track['path'], track['sim']))
             if txt:
-                resp.append("%s\t%f" % (mta.paths[resp_ids[i]], resp_similarity[i]))
+                resp.append("%s\t%f" % (track['path'], track['sim']))
             elif txt_url:
-                path = '%s%s' % (root, mta.paths[resp_ids[i]])
-                resp.append(cue.convert_to_cue_url(path))
+                resp.append(cue.convert_to_cue_url('%s%s' % (root, track['path'])))
             else:
-                resp.append({'file':mta.paths[resp_ids[i]], 'sim':resp_similarity[i]})
+                resp.append({'file':track['path'], 'sim':track['sim']})
             if len(resp)>=count:
                 break
         if txt or txt_url:
