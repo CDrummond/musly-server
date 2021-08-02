@@ -216,20 +216,41 @@ class Musly(object):
 
         # Rather than just random tracks, get a random track from each album
         style_tracks = []
-        if len(mtracks) > num_style_tracks_required:
-            _LOGGER.debug('Select style track from each album')
-            for album in meta_db.get_albums():
-                track = meta_db.get_sample_track(album)
-                if track is not None:
-                    style_tracks.append(track-1) # SQLite rowids start from 1, we want from 0
+        if numtracks > num_style_tracks_required:
+            #_LOGGER.debug('Select style track from each album')
+            #for album in meta_db.get_albums():
+            #    track = meta_db.get_sample_track(album)
+            #    if track is not None:
+            #        style_tracks.append(track-1) # SQLite rowids start from 1, we want from 0
 
-            # If too many choose a random somple from these
-            _LOGGER.debug('Num album style tracks: %d, required style tracks: %d' % (len(style_tracks), num_style_tracks_required))
-            if len(style_tracks)>num_style_tracks_required:
-                _LOGGER.debug('Selecting %d random tracks from album style tracks' % num_style_tracks_required)
-                style_tracks = random.sample(style_tracks, k=num_style_tracks_required)
+            ## If too many choose a random somple from these
+            #_LOGGER.debug('Num album style tracks: %d, required style tracks: %d' % (len(style_tracks), num_style_tracks_required))
+            #if len(style_tracks)>num_style_tracks_required:
+            #    _LOGGER.debug('Selecting %d random tracks from album style tracks' % num_style_tracks_required)
+            #    style_tracks = random.sample(style_tracks, k=num_style_tracks_required)
             # if too few, then add some random from remaining
-            elif len(style_tracks)<num_style_tracks_required:
+            #elif len(style_tracks)<num_style_tracks_required:
+            #    _LOGGER.debug('Choosing another %d tracks from DB' % (num_style_tracks_required-len(style_tracks)))
+            #    others = meta_db.get_other_sample_tracks(num_style_tracks_required-len(style_tracks), style_tracks)
+            #    for i in others:
+            #        style_tracks.append(i)
+            genres = meta_db.get_genres()
+            genres = sorted(genres, key=lambda k: -1*k['count'])
+            for genre in genres:
+                if len(style_tracks)>=num_style_tracks_required:
+                    break
+                amount = int(((genre['count']*1.0)/numtracks)*num_style_tracks_required)
+                if amount<1:
+                    amount=1
+                _LOGGER.debug('Choosing %d %s track(s)' % (amount, genre['genre']))
+                tracks = meta_db.get_sample_genre_tracks(genre['genre'], amount)
+                if tracks is not None:
+                    for track in tracks:
+                        style_tracks.append(track)
+                        if len(style_tracks)>=num_style_tracks_required:
+                            break
+
+            if len(style_tracks)<num_style_tracks_required:
                 _LOGGER.debug('Choosing another %d tracks from DB' % (num_style_tracks_required-len(style_tracks)))
                 others = meta_db.get_other_sample_tracks(num_style_tracks_required-len(style_tracks), style_tracks)
                 for i in others:

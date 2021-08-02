@@ -200,6 +200,18 @@ class MetadataDb(object):
         return albums
 
 
+    def get_genres(self):
+        genres = []
+        self.cursor.execute('SELECT distinct genre from tracks')
+        rows = self.cursor.fetchall()
+        for row in rows:
+            self.cursor.execute('SELECT count(*) FROM tracks WHERE genre=?', (row[0],))
+            cr = self.cursor.fetchone()
+            if cr is not None:
+                genres.append({'genre':row[0], 'count':cr[0]})
+        return genres
+
+
     def get_sample_track(self, album):
         ''' Get a random track betwen 60 and 5mins '''
         self.cursor.execute('SELECT rowid from tracks where albumartist=? and album=? and duration>=90 and duration<=300 order by random() limit 1', (album['artist'], album['title']))
@@ -219,6 +231,24 @@ class MetadataDb(object):
         if row is None:
             return None
         return row[0]
+
+
+    def get_sample_genre_tracks(self, genre, count):
+        tracks=[]
+        self.cursor.execute('SELECT rowid from tracks where genre=? and duration>=90 and duration<=300 order by random() limit ?', (genre, count))
+        rows = self.cursor.fetchall()
+        if rows is not None:
+            for row in rows:
+                tracks.append(row[0]-1)
+        if len(tracks)>=count:
+            return tracks
+
+        self.cursor.execute('SELECT rowid from tracks where genre=? and duration>300 and duration<=420 order by random() limit ?', (genre, count))
+        rows = self.cursor.fetchall()
+        if rows is not None:
+            for row in rows:
+                tracks.append(row[0]-1)
+        return tracks
 
 
     def get_other_sample_tracks(self, limit, exclude):

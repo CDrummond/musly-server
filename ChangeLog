@@ -7,6 +7,7 @@
 5. Display track number, total, and percentage during analysis.
 6. Add a test mode to test musly similarities.
 7. Expand /api/dump to allow usage in MusicSimilarity LMS plugin.
+8. When choosing style tracks, get random tracks from each genre.
 
 0.0.2
 -----
