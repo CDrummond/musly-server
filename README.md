@@ -216,6 +216,7 @@ This has the following format:
  "host":"0.0.0.0",
  "threads":8,
  "styletracks":1000,
+ "styletracksmethod":"genres",
  "extractstart":-48,
  "extractlen":30
 }
@@ -260,6 +261,12 @@ to alter this. Note, however, the larger the number here the longer it takes to
 for this call to complete. As a rough guide it takes ~1min per 1000 tracks.
 If you change this config item after the jukebox is written you will need to
 delete the jukebox file and restart the server.
+* `styletracksmethod` configures how tracks are chosen for styletracks. If
+set to `genres` (which is the default if not set) then the meta-data db is
+queried for how many track each genre has and tracks are chosen for each of
+these genres based upon the percentage of tracks in a genre. If set to `albums`
+then at least one track from each album is used. If set to aything else then
+random tracks are chosen.
 * `extractlen` The maximum length in seconds of the file to decode. If zero
 or greater than the file length, then the whole file will be decoded. Note,
 however, that only a maximum of 60 seconds is used for analysis - therefore

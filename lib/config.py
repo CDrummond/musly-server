@@ -67,6 +67,9 @@ def read_config(path, analyse):
     if not 'styletracks' in config:
         config['styletracks']=1000
 
+    if not 'styletracksmethod' in config:
+        config['styletracksmethod']='genres'
+
     if 'genres' in config:
         config['all_genres']=[]
         for genres in config['genres']:

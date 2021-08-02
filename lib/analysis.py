@@ -58,7 +58,7 @@ def analyse_files(mus, config, path, remove_tracks, meta_only, jukebox):
             meta_db.commit()
             if removed_tracks or (added_tracks and not meta_only):
                 (paths, db_tracks) = mus.get_alltracks_db(meta_db.get_cursor())
-                mus.add_tracks(db_tracks, config['styletracks'], meta_db)
+                mus.add_tracks(db_tracks, config['styletracks'], config['styletracksmethod'], meta_db)
             meta_db.close()
             if removed_tracks or not meta_only:
                 mus.write_jukebox(jukebox)

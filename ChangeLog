@@ -8,6 +8,7 @@
 6. Add a test mode to test musly similarities.
 7. Expand /api/dump to allow usage in MusicSimilarity LMS plugin.
 8. When choosing style tracks, get random tracks from each genre.
+9. Add setting to control how styletracks are chosen.
 
 0.0.2
 -----

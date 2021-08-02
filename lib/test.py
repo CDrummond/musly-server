@@ -15,8 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def test_jukebox(mus, app_config, jukebox_path):
     _LOGGER.info('Testing musly')
-    
-    
+
     meta_db = metadata_db.MetadataDb(app_config)
     (paths, tracks) = mus.get_alltracks_db(meta_db.get_cursor())
     ids = None
@@ -27,7 +26,7 @@ def test_jukebox(mus, app_config, jukebox_path):
 
     if ids==None or len(ids)!=len(tracks):
         _LOGGER.info('Adding tracks from DB to musly')
-        ids = mus.add_tracks(tracks, app_config['styletracks'], meta_db)
+        ids = mus.add_tracks(tracks, app_config['styletracks'], app_config['styletracksmethod'], meta_db)
         mus.write_jukebox(jukebox_path)
 
     meta_db.close()

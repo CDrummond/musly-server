@@ -48,7 +48,7 @@ class MuslyApp(Flask):
 
         if ids==None or len(ids)!=len(tracks):
             _LOGGER.debug('Adding tracks from DB to musly')
-            ids = mus.add_tracks(tracks, app_config['styletracks'], meta_db)
+            ids = mus.add_tracks(tracks, app_config['styletracks'], app_config['styletracksmethod'], meta_db)
             self.mus.write_jukebox(jukebox_path)
 
         meta_db.close()
