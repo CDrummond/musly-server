@@ -28,12 +28,14 @@ class MuslyJukebox(ctypes.Structure):
 
 class Musly(object):
     def __init__(self, libmusly):
-        hostOS = (platform.system())
-        if hostOS == "Darwin":
-            ctypes.CDLL(libmusly.replace('libmusly.dylib', 'libmusly_resample.dylib'))
-        else:
-            ctypes.CDLL(libmusly.replace('libmusly.so', 'libmusly_resample.so'))
+        try:
+            libresample = libmusly.replace('libmusly.', 'libmusly_resample.')
+            ctypes.CDLL(libresample)
+            _LOGGER.debug("Using: %s" % libresample)
+        except:
+            pass
         self.mus = ctypes.CDLL(libmusly)
+        _LOGGER.debug("Using: %s" % libmusly)
 
         # setup func calls
         self.mus.musly_debug.argtypes = [ctypes.c_int]
