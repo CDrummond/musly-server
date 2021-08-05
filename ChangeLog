@@ -1,14 +1,16 @@
 0.0.3
 -----
-1. Change default 'extractlen' to 30, to match Musly recommended value.
-2. Make extract start and length configurable.
-3. Allow configuring no repeat artist/album/track.
-4. Fix parsing of 1/0 parameters.
-5. Display track number, total, and percentage during analysis.
-6. Add a test mode to test musly similarities.
-7. Expand /api/dump to allow usage in MusicSimilarity LMS plugin.
-8. When choosing style tracks, get random tracks from each genre.
-9. Add setting to control how style tracks are chosen.
+ 1. Change default 'extractlen' to 30, to match Musly recommended value.
+ 2. Make extract start and length configurable.
+ 3. Allow configuring no repeat artist/album/track.
+ 4. Fix parsing of 1/0 parameters.
+ 5. Display track number, total, and percentage during analysis.
+ 6. Add a test mode to test musly similarities.
+ 7. Expand /api/dump to allow usage in MusicSimilarity LMS plugin.
+ 8. When choosing style tracks, get random tracks from each genre.
+ 9. Add setting to control how style tracks are chosen.
+10. Don't use musly_findmin as it seems to corrupt results, instead just sort
+    tracks by similarity before processing.
 
 0.0.2
 -----
