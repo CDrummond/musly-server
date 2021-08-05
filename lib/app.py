@@ -87,17 +87,17 @@ def genre_adjust(seed, entry, seed_genres, all_genres, match_all_genres):
     if match_all_genres:
         return 0.0
     if 'genres' not in seed:
-        return 0.2
+        return 0.4
     if 'genres' not in entry:
-        return 0.2
+        return 0.4
     if seed['genres'][0]==entry['genres'][0]:
         # Exact genre match
         return 0.0
     if (seed_genres is not None and entry['genres'][0] not in seed_genres) or \
        (seed_genres is None and all_genres is not None and entry['genres'][0] in all_genres):
-        return 0.1
+        return 0.2
     # Genre in group
-    return 0.05
+    return 0.1
 
 
 @musly_app.route('/api/dump', methods=['GET', 'POST'])
@@ -140,9 +140,20 @@ def dump_api():
         txt = fmt=='text'
         txt_url = fmt=='text-url'
         match_artist = int(get_value(params, 'filterartist', '0', isPost))==1
-        meta = meta_db.get_metadata(track_id+1) if match_artist else None # IDs (rowid) in SQLite are 1.. musly is 0..
+        meta = meta_db.get_metadata(track_id+1) # IDs (rowid) in SQLite are 1.. musly is 0..
+
+        all_genres = cfg['all_genres'] if 'all_genres' in cfg else None
+        seed_genres=[]
+        if 'genres' in meta and 'genres' in cfg:
+            for genre in meta['genres']:
+                for group in cfg['genres']:
+                    if genre in group:
+                        for cg in group:
+                            if not cg in seed_genres:
+                                seed_genres.append(cg)
 
         simtracks = mus.get_similars( mta.mtracks, mta.mtrackids, track_id )
+
         resp=[]
         prev_id=-1
         count = int(get_value(params, 'count', 1000, isPost))
@@ -154,11 +165,13 @@ def dump_api():
             prev_id=simtrack['id']
             if math.isnan(simtrack['sim']):
                 continue
-            if meta is not None:
-                track = meta_db.get_metadata(simtrack['id']+1)
-                if track['artist'] != meta['artist']:
-                    continue
-            tracks.append({'path':mta.paths[simtrack['id']], 'sim':simtrack['sim']})
+
+            track = meta_db.get_metadata(simtrack['id']+1)
+            if match_artist and track['artist'] != meta['artist']:
+                continue
+            match_all_genres = ('ignoregenre' in cfg) and (('*'==cfg['ignoregenre'][0]) or (meta is not None and meta['artist'] in cfg['ignoregenre']))
+            sim = simtrack['sim'] + genre_adjust(meta, track, seed_genres, all_genres, match_all_genres)
+            tracks.append({'path':mta.paths[simtrack['id']], 'sim':sim})
 
         tracks = sorted(tracks, key=lambda k: k['sim'])
         for track in tracks:
@@ -175,7 +188,8 @@ def dump_api():
             return '\n'.join(resp)
         else:
             return json.dumps(resp)
-    except:
+    except Exception as e:
+        _LOGGER.error("EX:%s" % str(e))
         abort(404)
 
 
