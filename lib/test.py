@@ -32,18 +32,19 @@ def test_jukebox(mus, app_config, jukebox_path):
     meta_db.close()
     mta=musly.MuslyTracksAdded(paths, tracks, ids)
 
-    ( resp_ids, resp_similarity ) = mus.get_similars( mta.mtracks, mta.mtrackids, 0, 51 )
-    if len(resp_similarity)<2:
+    simtracks = mus.get_similars( mta.mtracks, mta.mtrackids, 0 )
+    if len(simtracks)<2:
         _LOGGER.error('Too few tracks returned from similarity query???')
     else:
+        simtracks = simtracks[:51]
         sims=[]
         nans=0
-        for i in range(1, len(resp_similarity)):
-            _LOGGER.debug('[%i] %f' % (i, resp_similarity[i]))
-            if math.isnan(resp_similarity[i]):
+        for i in range(1, len(simtracks)):
+            _LOGGER.debug('[%i] ID:%i Sim:%f' % (i, simtracks[i]['id'], simtracks[i]['sim']))
+            if math.isnan(simtracks[i]['sim']):
                 nans += 1
-            elif resp_similarity[i] not in sims:
-                sims.append(resp_similarity[i])
+            elif simtracks[i]['sim'] not in sims:
+                sims.append(simtracks[i]['sim'])
         if nans>0:
             _LOGGER.error('Musly returned an invalid similarity? Suggest you remove %s (and perhaps alter styletracks in config?)' % jukebox_path)
             sys.exit(-1)
@@ -51,4 +52,4 @@ def test_jukebox(mus, app_config, jukebox_path):
             _LOGGER.error('All similarities the same? Suggest you remove %s (and perhaps alter styletracks in config?)' % jukebox_path)
             sys.exit(-1)
         else:
-            _LOGGER.info('Musly returned %d different similarities for %d tracks' % (len(sims), len(resp_similarity)-1))
+            _LOGGER.info('Musly returned %d different similarities for %d tracks' % (len(sims), len(simtracks)-1))
