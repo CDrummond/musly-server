@@ -193,7 +193,7 @@ This has the following format:
 
 ```
 {
- "libmusly":"lib/x86-64/fedora32/libmusly.so",
+ "libmusly":"lib/x86-64/fedora/libmusly.so",
  "paths":{
   "db":"/home/user/.local/share/musly/",
   "musly":"/home/Music/",
