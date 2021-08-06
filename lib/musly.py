@@ -1,6 +1,7 @@
 '''
 Musly - access libmusly functions
 (c) 2017 R.S.U. / GPL v3 / https://www.nexus0.net/pub/sw/lmsmusly
+(c) 2020 Caig Drummond - modified for use in musly-server
 '''
 
 import ctypes, math, random, pickle, sqlite3, logging, os, platform
@@ -39,12 +40,6 @@ class Musly(object):
         _LOGGER.debug("Using: %s" % libmusly)
 
         # setup func calls
-        self.mus.musly_debug.argtypes = [ctypes.c_int]
-        self.mus.musly_version.restype = ctypes.c_char_p
-        self.mus.musly_jukebox_listmethods.restype = ctypes.c_char_p
-        self.mus.musly_jukebox_listdecoders.restype = ctypes.c_char_p
-        self.mus.musly_jukebox_aboutmethod.argtypes = [ctypes.POINTER(MuslyJukebox)]
-        self.mus.musly_jukebox_aboutmethod.restype = ctypes.c_char_p
 
         self.mus.musly_jukebox_trackcount.argtypes = [ctypes.POINTER(MuslyJukebox)]
         # int musly_track_size (musly_jukebox *  jukebox   )
@@ -84,10 +79,6 @@ class Musly(object):
 
     def jukebox_off(self):
         self.mus.musly_jukebox_poweroff (self.mj)
-
-
-    def get_numtracks(self):
-        return self.mus.musly_jukebox_trackcount(self.mj)
 
 
     def get_jukebox_binsize(self):
@@ -311,15 +302,8 @@ class Musly(object):
         msims = msims_type()
         # int musly_jukebox_similarity (musly_jukebox *  jukebox, musly_track *  seed_track, musly_trackid  seed_trackid, musly_track **  tracks, musly_trackid *  trackids, int  num_tracks, float *  similarities 
         self.mus.musly_jukebox_similarity.argtypes = [ctypes.POINTER(MuslyJukebox), ctypes.POINTER(ctypes.c_float), ctypes.c_int, ctypes.POINTER(mtracks_type), ctypes.POINTER(mtrackids_type), ctypes.c_int, ctypes.POINTER(msims_type) ]
-        # musly_findmin(const float* values, const musly_trackid* ids, int count, float* min_values, musly_trackid* min_ids, int min_count, int ordered) 
-        #self.mus.musly_findmin.argtypes = [ctypes.POINTER(msims_type), ctypes.POINTER(mtrackids_type), ctypes.c_int, ctypes.POINTER(rsims_type), ctypes.POINTER(rtrackids_type), ctypes.c_int, ctypes.c_int ]
 
         seedtrack = mtracks[seedtrackid].contents
-
-#        for t in mtracks:
-#            _LOGGER.debug("get_similars: mtrack = {}".format(repr(t.contents)))
-
-#        _LOGGER.debug("Get similar tracks, seedtrack = {} numres={}".format(repr(seedtrack), rnumtracks))
 
         if (self.mus.musly_jukebox_similarity(self.mj, seedtrack, ctypes.c_int(seedtrackid), ctypes.pointer(mtracks), ctypes.pointer(mtrackids), ctypes.c_int(numtracks), ctypes.pointer(msims))) == -1:
             _LOGGER.error("musly_jukebox_similarity")
@@ -330,5 +314,4 @@ class Musly(object):
             #_LOGGER.debug("get_similars: mtrack id: {:3} sim: {:8.6f}".format(i, msims[i]))
             rtracks.append({'id':i, 'sim':msims[i]})
         return sorted(rtracks, key=lambda k: k['sim'])
-
 
