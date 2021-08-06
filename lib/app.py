@@ -87,17 +87,17 @@ def genre_adjust(seed, entry, seed_genres, all_genres, match_all_genres):
     if match_all_genres:
         return 0.0
     if 'genres' not in seed:
-        return 0.4
+        return 0.1
     if 'genres' not in entry:
-        return 0.4
+        return 0.1
     if seed['genres'][0]==entry['genres'][0]:
         # Exact genre match
         return 0.0
     if (seed_genres is not None and entry['genres'][0] not in seed_genres) or \
        (seed_genres is None and all_genres is not None and entry['genres'][0] in all_genres):
-        return 0.2
+        return 0.05
     # Genre in group
-    return 0.1
+    return 0.025
 
 
 @musly_app.route('/api/dump', methods=['GET', 'POST'])
@@ -332,6 +332,7 @@ def similar_api():
         # Query musly for similar tracks
         _LOGGER.debug('Query musly for similar tracks to index: %d' % track_id)
         simtracks = mus.get_similars( mta.mtracks, mta.mtrackids, track_id )
+
         accepted_tracks = 0
         for simtrack in simtracks:
             if math.isnan(simtrack['sim']):
@@ -374,7 +375,7 @@ def similar_api():
                             current_metadata.append(meta)
                         sim = simtrack['sim'] + genre_adjust(seed_metadata, meta, seed_genres, all_genres, match_all_genres)
 
-                        _LOGGER.debug('USABLE ID:%d Path:%s Similarity:%f Meta:%s' % (simtrack['id'], mta.paths[simtrack['id']], sim, json.dumps(meta)))
+                        _LOGGER.debug('USABLE ID:%d Path:%s Similarity:%f AdjSim:%s Meta:%s' % (simtrack['id'], mta.paths[simtrack['id']], simtrack['sim'], sim, json.dumps(meta)))
                         similar_tracks.append({'path':mta.paths[simtrack['id']], 'similarity':sim})
                         # Keep list of all tracks of an artist, so that we can randomly select one => we don't always use the same one
                         matched_artists[meta['artist']]={'similarity':simtrack['sim'], 'tracks':[{'path':mta.paths[simtrack['id']], 'similarity':sim}], 'pos':len(similar_tracks)-1}
