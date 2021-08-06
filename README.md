@@ -4,7 +4,7 @@ Simple python3 API server to create a mix of music tracks for LMS.
 
 ## Musly
 
-This service uses the [Musly audio music similarity library](https://github.com/dominikschnitzer/musly)
+This service uses the [Musly audio music similarity library](https://github.com/CDrummond/musly)
 This library needs to be compiled, and `config.json` (from this API project)
 updated to store the location of this library. This repo contains pre-built
 built versions for:
