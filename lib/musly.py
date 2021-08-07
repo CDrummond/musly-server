@@ -4,7 +4,7 @@ Musly - access libmusly functions
 (c) 2020 Caig Drummond - modified for use in musly-server
 '''
 
-import ctypes, math, random, pickle, sqlite3, logging, os, platform, json
+import ctypes, math, random, pickle, sqlite3, logging
 from collections import namedtuple
 from sys import version_info
 from concurrent.futures import ThreadPoolExecutor
