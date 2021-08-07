@@ -314,7 +314,7 @@ class Musly(object):
 
         if (self.mus.musly_jukebox_setmusicstyle(self.mj, ctypes.pointer(smtracks), ctypes.c_int(snumtracks)) == -1) :
             _LOGGER.error("musly_jukebox_setmusicstyle")
-            return False
+            return None
         else:
             if self.mus.musly_jukebox_addtracks(self.mj, ctypes.pointer(mtracks), ctypes.pointer(mtrackids), ctypes.c_int(numtracks), ctypes.c_int(1)) == -1:
                 _LOGGER.error("musly_jukebox_addtracks")
