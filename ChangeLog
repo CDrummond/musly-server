@@ -12,7 +12,7 @@
 10. Don't use musly_findmin as it seems to corrupt results, instead just sort
     tracks by similarity before processing.
 11. Build musly library using code from https://github.com/CDrummond/musly
-12. Give more weight to genre matches.
+12. Fix multi-threaded analysis - use separate process for each track.
 
 0.0.2
 -----

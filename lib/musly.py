@@ -4,10 +4,11 @@ Musly - access libmusly functions
 (c) 2020 Caig Drummond - modified for use in musly-server
 '''
 
-import ctypes, math, random, pickle, sqlite3, logging, os, platform
+import ctypes, math, random, pickle, sqlite3, logging, os, platform, json
 from collections import namedtuple
 from sys import version_info
 from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import Process, Pipe
 from . import metadata_db
 
 if version_info < (3, 2):
@@ -28,16 +29,29 @@ class MuslyJukebox(ctypes.Structure):
                 ("decoder", ctypes.c_void_p),
                 ("decoder_name", ctypes.c_char_p)]
 
+
+# This function is invoked when anlyzing tracks multi-threaded. libmusly does not seem to be
+# thread safe - so we create a new process per-file to perform the analysis
+def analyze_audiofile(pipe, libmusly, index, db_path, abs_path, extract_len, extract_start):
+    musly = Musly(libmusly, True)
+    result = musly.analyze_file(index, -1, db_path, abs_path, extract_len, extract_start)
+    pipe.send({'ok':result['ok'], 'index':result['index'], 'track':pickle.dumps(bytes(result['mtrack']), protocol=4)})
+    pipe.close()
+
+
 class Musly(object):
-    def __init__(self, libmusly):
+    def __init__(self, libmusly, quiet=False):
         try:
             libresample = libmusly.replace('libmusly.', 'libmusly_resample.')
             ctypes.CDLL(libresample)
-            _LOGGER.debug("Using: %s" % libresample)
+            if not quiet:
+                _LOGGER.debug("Using: %s" % libresample)
         except:
             pass
+        self.libmusly = libmusly
         self.mus = ctypes.CDLL(libmusly)
-        _LOGGER.debug("Using: %s" % libmusly)
+        if not quiet:
+            _LOGGER.debug("Using: %s" % libmusly)
 
         # setup func calls
 
@@ -75,7 +89,9 @@ class Musly(object):
         self.mtracksize = self.mus.musly_track_size(self.mj)
         self.mtrack_type = ctypes.c_float * math.ceil(self.mtracksize/ctypes.sizeof(ctypes.c_float()))
         
-        _LOGGER.debug("musly init done")
+        if not quiet:
+            _LOGGER.debug("musly init done")
+
 
     def jukebox_off(self):
         self.mus.musly_jukebox_poweroff (self.mj)
@@ -163,42 +179,56 @@ class Musly(object):
 
     def analyze_file(self, index, total, db_path, abs_path, extract_len, extract_start):
         mtrack = self.mtrack_type()
-        _LOGGER.debug("[{}/{} {}%] Analyze: {}".format(index+1, total, int((index+1)*100/total), db_path))
+        if total>0:
+            _LOGGER.debug("[{}/{} {}%] Analyze: {}".format(index+1, total, int((index+1)*100/total), db_path))
         if self.mus.musly_track_analyze_audiofile(self.mj, abs_path.encode(), extract_len, extract_start, mtrack) == -1:
             _LOGGER.error("musly_track_analyze_audiofile failed for {}".format(abs_path))
             return {'ok':False, 'index':index, 'mtrack':mtrack}
         else:
             return {'ok':True, 'index':index, 'mtrack':mtrack}
 
-                
+
+    def analyze_file_proc(self, index, total, db_path, abs_path, extract_len, extract_start):
+        _LOGGER.debug("[{}/{} {}%] Analyze: {}".format(index+1, total, int((index+1)*100/total), db_path))
+        pout, pin = Pipe(duplex=False)
+        p = Process(target=analyze_audiofile, args=(pin, self.libmusly, index, db_path, abs_path, extract_len, extract_start))
+        p.start()
+        r = pout.recv()
+        p.terminate()
+        p.join()
+        return r
+
+
     def analyze_files(self, meta_db, allfiles, extract_len = 60, extract_start = -48, num_threads=8):
         numtracks = len(allfiles)
         _LOGGER.info("Have {} files to analyze".format(numtracks))
         _LOGGER.info("Extraction length: {}s extraction start: {}s".format(extract_len, extract_start))
-
-        mtracks_type = (ctypes.POINTER(self.mtrack_type)) * numtracks
-        analyzed_tracks = mtracks_type()
         
         futures_list = []
         inserts_since_commit = 0
         with ThreadPoolExecutor(max_workers=num_threads) as executor:
             for i in range(numtracks):
-                futures = executor.submit(self.analyze_file, i, numtracks, allfiles[i]['db'], allfiles[i]['abs'], extract_len, extract_start)
+                if num_threads>1 and numtracks>1:
+                    futures = executor.submit(self.analyze_file_proc, i, numtracks, allfiles[i]['db'], allfiles[i]['abs'], extract_len, extract_start)
+                else:
+                    futures = executor.submit(self.analyze_file, i, numtracks, allfiles[i]['db'], allfiles[i]['abs'], extract_len, extract_start)
                 futures_list.append(futures)
             for future in futures_list:
                 try:
                     result = future.result()
                     if result['ok']:
-                        meta_db.get_cursor().execute('INSERT INTO tracks (file, vals) VALUES (?, ?)', (allfiles[result['index']]['db'], pickle.dumps(bytes(result['mtrack']), protocol=4)))
+                        if 'mtrack' in result:
+                            meta_db.get_cursor().execute('INSERT INTO tracks (file, vals) VALUES (?, ?)', (allfiles[result['index']]['db'], pickle.dumps(bytes(result['mtrack']), protocol=4)))
+                        else:
+                            meta_db.get_cursor().execute('INSERT INTO tracks (file, vals) VALUES (?, ?)', (allfiles[result['index']]['db'], result['track']))
                         inserts_since_commit += 1
                         if inserts_since_commit >= 500:
                             inserts_since_commit = 0
                             meta_db.commit()
-                    analyzed_tracks[result['index']]=ctypes.pointer(result['mtrack'])
                 except Exception as e:
                     _LOGGER.debug("Thread exception? - %s" % str(e))
                     pass
-        return analyzed_tracks
+
 
 
     def add_tracks(self, mtracks, num_style_tracks_required, styletracks_method, meta_db):
