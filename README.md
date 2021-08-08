@@ -66,27 +66,12 @@ jukebox file and re-runnnig this script - it will recreate the jukebox with
 random tracks. If this keeps failing it might be better to adjust the
 `styletracks` config item, delete the jukebox, and test again.
 
-To aid with this, I have a simple bash script that repeatedly tests Musly until
-the similarities are different. This is detailed below (before using, update
-`JUKEBOX` and `CONFIG` to your specific values):
+Alternatively, you can have this script run until it receives valid similarities
+from Musly. In this mode the script will test the jukebox, remove it if the test
+fails, recreate jukebox, test the jukebox, ...
 
 ```
-JUKEBOX=/home/user/musly.jukebox
-CONFIG=/home/user/config.json
-
-while [ 1 ] ; do
-   ../musly-server/musly-server.py -c "$CONFIG" -l INFO -t
-   if [ $? -ne 0 ] ; then
-       echo ""
-       echo "**** Removing $JUKEBOX"
-       echo ""
-       rm "$JUKEBOX"
-   else
-       echo ""
-       echo "Musly OK"
-       exit
-   fi
-done
+./musly-server.py --log-level INFO --test --repeat
 ```
 
 ## Similarity API 

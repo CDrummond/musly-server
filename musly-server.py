@@ -23,6 +23,7 @@ if __name__=='__main__':
     parser.add_argument('-m', '--meta-only', action='store_true', default=False, help='Update metadata database only (used in conjuction with --analyse)')
     parser.add_argument('-k', '--keep-old', action='store_true', default=False, help='Do not remove non-existant tracks from DB (used in conjuction with --analyse)')
     parser.add_argument('-t', '--test', action='store_true', default=False, help='Test musly')
+    parser.add_argument('-r', '--repeat', action='store_true', default=False, help='Repeat test until OK (used in conjuction with --test)')
     args = parser.parse_args()
     logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s', level=args.log_level, datefmt='%Y-%m-%d %H:%M:%S')
     cfg = config.read_config(args.config, args.analyse)
@@ -37,7 +38,7 @@ if __name__=='__main__':
         path = cfg['paths']['musly'] if args.analyse =='m' else args.analyse
         analysis.analyse_files(mus, cfg, path, not args.keep_old, args.meta_only, jukebox_file)
     elif args.test:
-        test.test_jukebox(mus, cfg, jukebox_file)
+        test.test_jukebox(mus, cfg, jukebox_file, args.repeat)
     else:
         app.start_app(args, mus, cfg, jukebox_file)
 
