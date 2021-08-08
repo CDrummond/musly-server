@@ -269,8 +269,7 @@ then at least one track from each album is used. If set to aything else then
 random tracks are chosen.
 * `extractlen` The maximum length in seconds of the file to decode. If zero
 or greater than the file length, then the whole file will be decoded. Note,
-however, that only a maximum of 60 seconds is used for analysis - therefore
-specifying more than 60 seconds will just waste CPU time.
+however, that only a maximum of 5 minutes is used for analysis.
 * `extractstart` The starting position in seconds of the excerpt to decode. If
 zero, decoding starts at the beginning. If negative, the excerpt is centered in
 the file, but starts at -`extractstart` the latest. If positive and
