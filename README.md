@@ -14,7 +14,7 @@ built versions for:
 
 **macOS**
 
-Instructions, and binaries, for musly on macOS can be found [here](https://github.com/AF-1/sobras/tree/main/lms-musly-server_on_macos)
+Instructions, and binaries, for Musly on macOS can be found [here](https://github.com/AF-1/sobras/tree/main/lms-musly-server_on_macos)
 
 ## Analysing Tracks
 
@@ -25,12 +25,12 @@ accomplished via:
 ./musly-server.py --analyse /path/to/music/folder
 ```
 
-This takes about 50 minutes to process 20k tracks. The process analyses tracks,
-adds them to musly, intialises musly's 'jukebox' style with 1000 random tracks,
-and extracts certain tags. If re-run new tracks will be added, and old
+This takes between 1 and 2 hours to process 25k tracks. The process analyses
+tracks, adds them to Musly, intialises Musly's 'jukebox' style with 1000 random
+tracks, and extracts certain tags. If re-run new tracks will be added, and old
 (non-existant) will be removed. Pass `--keep-old` to keep these old tracks.
 
-To analyse the musly path stored in the config file, the following shortcut can
+To analyse the Musly path stored in the config file, the following shortcut can
 be used:
 
 ```
@@ -57,7 +57,7 @@ run the script in test mode:
 ./musly-server.py --log-level INFO --test
 ```
 
-This will query musly for the 50 most similar tracks to the 1st analysed track.
+This will query Musly for the 50 most similar tracks to the 1st analysed track.
 It then checks that there are different similarities, and if not an error
 message is shown.
 
@@ -66,7 +66,7 @@ jukebox file and re-runnnig this script - it will recreate the jukebox with
 random tracks. If this keeps failing it might be better to adjust the
 `styletracks` config item, delete the jukebox, and test again.
 
-To aid with this, I have a simple bash script that repeatedly tests musly until
+To aid with this, I have a simple bash script that repeatedly tests Musly until
 the similarities are different. This is detailed below (before using, update
 `JUKEBOX` and `CONFIG` to your specific values):
 
@@ -125,7 +125,7 @@ repeated. This is not a hard-limit, as if there are too few candidates then
 repeats can happen.
 
 `norepalb` specifies the number of tracks where an album should not be
-repeated. This does not aply to 'Various Artist' albums. This is not also not a
+repeated. This does not aply to 'Various Artist' albums. This is also not a
 hard-limit, as if there are too few candidates then repeats can happen.
 
 `previous` may be used to list tracks currently in the play queue. This
@@ -139,18 +139,18 @@ the default value.
 `shuffle` if set to `1` will cause extra tracks to be located, this list
 shuffled, and then the desired `count` tracks taken from this shuffled list.
 
-The API will try query Musly for 25 times the specified `count` tracks (default
-of 5) for each supplied seed track. (This is to allow for filtering on genre,
-etc). Initally the API will ignore musly tracks from the same artist or album of
-the seed tracks (and any previous in the list, any albums from the 25
-`previous` tracks, or albums from the last 15 `previous` tracks). If, because of
-this filtering, there are less than the requested amount then the highest
-similarity tracks from the filtered-out lists are chosen.
+The API will use Musly to get the similairt between all tracks and each seed
+track, and sort this by similarity (most similar first). Initally the API will
+ignore Musly tracks from the same artist or album of the seed tracks (and any
+previous in the list, any albums from the (e.g.) 25 `previous` tracks, or albums
+from the last (e.g.) 15 `previous` tracks). If, because of this filtering,
+there are less than the requested amount then the highest similarity tracks
+from the filtered-out lists are chosen.
 
 Metadata for tracks is stored in an SQLite database, this has an `ignore` column
 which if set to `1` will cause the API to not use this track if it is returned
-as a similar track by musly. In this way you can exclude specific tracks from
-being added to mixes - but if they are already in the queue, then they can sill
+as a similar track by Musly. In this way you can exclude specific tracks from
+being added to mixes - but if they are already in the queue, then they can still
 be used as seed tracks.
 
 This API is intended to be used by [LMS Music Similarity Plugin](https://github.com/CDrummond/lms-musicsimilarity)
@@ -186,10 +186,12 @@ params of the call are passed as a JSON object. eg.
 }
 ```
 
+This is the method that is used by the LMS plugin.
+
 ## Configuration
 
-The sever reads its configuration from a JSON file (default name is `config.json`).
-This has the following format:
+The sever reads its configuration from a JSON file (default name is
+`config.json`). This has the following format:
 
 ```
 {
@@ -225,13 +227,13 @@ This has the following format:
 * `libmusly` should contain the path the musy shared library - path is relative
 to `musly-server.py`
 * `paths.db` should be the path where the SQLite and jukebox files created by
-this app can be written
-* `paths.musly` should be the path where musly can access your music files. This
+this app can be written.
+* `paths.musly` should be the path where Musly can access your music files. This
 can be different to `path.lms` if you are running analysis on a different
 machine to where you would run the script as the API server. This script will
 only store the paths relative to this location - eg. `paths.musly=/home/music/`
 then `/home/music/A/b.mp3` will be stored as `A/b.mp3`.
-* `paths.musly` should be the path where LMS access your music files. The API
+* `paths.lms` should be the path where LMS accesses your music files. The API
 server will remove this path from API calls, so that it can look up tracks in
 its database by their relative path.
 * `paths.tmp` When analysing music, this script will create a temporary folder
@@ -246,7 +248,7 @@ required to split tracks.
 * `ignoregenre` List of artists where genre filtering (excluding christmas)
 should be ignored. To apply to all artists, use '*' - e.g. `"ignoregenre":"*"`
 * `normalize.artist` List of strings to split artist names, e.g. "A ft. B"
-becomes "A" (periods are automatically removed)
+becomes "A" (periods are automatically removed).
 * `normalize.album` List of strings to remove from album names.
 * `normalize.title` List of strings to remove from titles.
 * `port` This is the port number the API is accessible on.
@@ -254,8 +256,8 @@ becomes "A" (periods are automatically removed)
 all interfaces on your network.
 * `threads` Number of threads to use during analysis phase. This controls how
 many calls to `ffmpeg` are made concurrently, and how many concurrent tracks
-musly is asked to analyse. Defaults to CPU count, if not set.
-* `styletracks` A  subset of tracks is passed to musly's `setmusicstyle`
+Musly is asked to analyse. Defaults to CPU count, if not set.
+* `styletracks` A  subset of tracks is passed to Musly's `setmusicstyle`
 function, by default 1000 random tracks is chosen. This config item can be used
 to alter this. Note, however, the larger the number here the longer it takes to
 for this call to complete. As a rough guide it takes ~1min per 1000 tracks.
@@ -297,11 +299,11 @@ This sets the `ignore` column to 1 for all items whose file starts with one of
 the listed lines.
 
 Setting a track's `ignore` to `1` will exclude tracks from being added to
-mixes - but if they are already in the queue, then they can sill be used as seed
-tracks.
+mixes - but if they are already in the queue, then they can still be used as
+seed tracks.
 
 
 ## Credits
 
-`lib/musly.py` (which is used as a python interface to the musly library) is
+`lib/musly.py` (which is used as a python interface to the Musly library) is
 taken, and modified, from [Musly Integration for the Logitech Media Server](https://www.nexus0.net/pub/sw/lmsmusly)
