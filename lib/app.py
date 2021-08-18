@@ -253,7 +253,7 @@ def similar_api():
 
     # Artist/album of seed tracks
     seed_metadata=[]
-    track_id_seed_metadata={}
+    track_id_seed_metadata={} # Map from seed track's ID to its metadata
     seed_genres=[]
     all_genres = cfg['all_genres'] if 'all_genres' in cfg else None
     
