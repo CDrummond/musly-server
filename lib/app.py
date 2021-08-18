@@ -169,6 +169,8 @@ def dump_api():
             track = meta_db.get_metadata(simtrack['id']+1)
             if match_artist and track['artist'] != meta['artist']:
                 continue
+            if not match_artist and track['ignore']:
+                continue
             match_all_genres = ('ignoregenre' in cfg) and (('*'==cfg['ignoregenre'][0]) or (meta is not None and meta['artist'] in cfg['ignoregenre']))
             sim = simtrack['sim'] + genre_adjust(meta, track, seed_genres, all_genres, match_all_genres)
             tracks.append({'path':mta.paths[simtrack['id']], 'sim':sim})
