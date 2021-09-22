@@ -1,3 +1,7 @@
+**DEPRECATED** Please use [Music Similarity](https://github.com/CDrummond/music-similarity) instead.
+
+---
+
 # Musy API Server
 
 Simple python3 API server to create a mix of music tracks for LMS.
